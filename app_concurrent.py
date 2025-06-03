@@ -1,19 +1,14 @@
 """
-Automatic Documentation Generator - Main Application with Concurrent Processing
+Automatic Documentation Generator - Concurrent Version
 
-This web application takes archive files containing code files, extracts them,
-and automatically generates documentation using the Claude API with concurrent processing.
+This version fixes the ScriptRunContext threading issues with Streamlit.
 """
 
 import streamlit as st
 import os
-import asyncio
 from dotenv import load_dotenv
 
-# Load environment variables at the application start
-load_dotenv(dotenv_path='.env', verbose=True)
-
-# Import from utils - directly import specific functions to avoid circular imports
+# Import from utils
 from utils.ui import (
     setup_page,
     sidebar_config,
@@ -23,13 +18,15 @@ from utils.ui import (
     display_download_options
 )
 
-# Import from core - using the concurrent implementation
+# Import from core - using the fixed concurrent implementation
 from core.concurrent_docgen import (
     process_archive, 
-    generate_all_documentation_concurrent,
-    generate_all_documentation_async
+    generate_all_documentation_concurrent_fixed,
+    generate_all_documentation_batch
 )
 
+# Load environment variables at the application start
+load_dotenv(dotenv_path='.env', verbose=True)
 
 def main():
     """Main application function."""
@@ -37,8 +34,8 @@ def main():
     setup_page()
     
     # Display title and description
-    st.title("🤖 Advanced Documentation Generator")
-    st.write("Upload archive files to generate documentation")
+    st.title("🤖 Advanced Documentation Generator (Concurrent)")
+    st.write("Upload archive files to generate documentation with improved performance")
     
     # Get configuration from sidebar
     config = sidebar_config()
@@ -46,22 +43,29 @@ def main():
     # Add concurrency options
     st.sidebar.subheader("Performance Settings")
     concurrency_method = st.sidebar.radio(
-        "Concurrency Method:",
-        ["Sequential", "ThreadPool", "Asyncio"],
-        index=1,  # Default to ThreadPool
-        help="Choose how to parallelize documentation generation"
+        "Processing Method:",
+        ["Sequential", "Batch Processing", "Full Concurrent"],
+        index=1,  # Default to Batch Processing (more stable)
+        help="Choose how to process multiple files"
     )
     
     if concurrency_method != "Sequential":
-        max_workers = st.sidebar.slider(
-            "Max Concurrent Requests",
-            min_value=2,
-            max_value=10,
-            value=5,
-            help="Maximum number of concurrent API calls to Claude"
-        )
-    else:
-        max_workers = 1
+        if concurrency_method == "Batch Processing":
+            batch_size = st.sidebar.slider(
+                "Batch Size",
+                min_value=2,
+                max_value=5,
+                value=3,
+                help="Number of files to process simultaneously in each batch"
+            )
+        else:
+            max_workers = st.sidebar.slider(
+                "Max Workers",
+                min_value=2,
+                max_value=8,
+                value=3,
+                help="Maximum number of concurrent threads (keep low to avoid API issues)"
+            )
     
     if not config['api_key']:
         st.warning("Please enter your Anthropic API key to continue")
@@ -88,31 +92,22 @@ def main():
         if not files_valid:
             return
         
-        # Initialize session state for generation
-        if 'generation_complete' in st.session_state:
-            del st.session_state['generation_complete']
-        
         # Generate documentation button
         if st.button("Generate Documentation", key="generate_docs_button"):
-            with st.spinner("Generating documentation..."):
+            with st.container():
+                st.subheader("Documentation Generation Progress")
+                
                 # Choose the appropriate generation method
-                if concurrency_method == "ThreadPool":
-                    st.info(f"Using ThreadPool with {max_workers} workers for concurrent generation")
-                    documentation = generate_all_documentation_concurrent(files, config, max_workers)
-                elif concurrency_method == "Asyncio":
-                    st.info(f"Using Asyncio with {max_workers} concurrent tasks")
-                    # For asyncio, we need to run the async function
-                    async def run_async():
-                        return await generate_all_documentation_async(files, config, max_workers)
-                    
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    documentation = loop.run_until_complete(run_async())
-                    loop.close()
+                if concurrency_method == "Batch Processing":
+                    st.info(f"Using batch processing with batch size: {batch_size}")
+                    documentation = generate_all_documentation_batch(files, config, batch_size)
+                elif concurrency_method == "Full Concurrent":
+                    st.info(f"Using concurrent processing with {max_workers} workers")
+                    documentation = generate_all_documentation_concurrent_fixed(files, config, max_workers)
                 else:
-                    # Use the original sequential method from core.docgen
+                    # Use the original sequential method
                     from core.docgen import generate_all_documentation
-                    st.info("Using sequential generation (no concurrency)")
+                    st.info("Using sequential processing")
                     documentation = generate_all_documentation(files, config)
                 
                 if documentation:

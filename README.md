@@ -1,4 +1,3 @@
-
 # Auto Documentation Generator
 
 A web application that automatically generates documentation for code files in a zip archive using the Claude API.

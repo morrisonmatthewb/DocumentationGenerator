@@ -35,7 +35,7 @@ def main():
     setup_page()
 
     # Display title and description
-    st.title("🤖 Advanced Documentation Generator")
+    st.title("Documentation Generator")
     st.write("Upload archive files to generate documentation with improved performance")
 
     # Add documentation history in sidebar

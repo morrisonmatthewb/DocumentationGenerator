@@ -8,9 +8,9 @@ import json
 import streamlit as st
 from typing import Dict, List, Any, Tuple, Optional
 from dotenv import load_dotenv
-
 from config.constants import (
     SUPPORTED_EXTENSIONS,
+    FILE_TYPE_CATEGORIES,
     SUPPORTED_ARCHIVE_FORMATS,
     DOC_LEVELS,
     DEFAULT_DOC_LEVEL,
@@ -78,7 +78,7 @@ def get_api_key_ui() -> Optional[str]:
 
 
 def sidebar_config() -> Dict[str, Any]:
-    """Configure and display the sidebar options.
+    """Configure and display the sidebar options with categorized file types.
 
     Returns:
         Dictionary containing all configuration options
@@ -95,12 +95,68 @@ def sidebar_config() -> Dict[str, Any]:
         index=DOC_LEVELS.index(DEFAULT_DOC_LEVEL),
     )
 
-    # File type selection
+    # File type selection with categories
     st.sidebar.subheader("File Types to Process")
+
+    # Add "Select All" / "Deselect All" buttons
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        if st.button("✅ All", key="select_all", help="Select all file types"):
+            for category, files in FILE_TYPE_CATEGORIES.items():
+                for ext, _ in files:
+                    st.session_state[f"file_type_{ext}"] = True
+
+    with col2:
+        if st.button("❌ None", key="deselect_all", help="Deselect all file types"):
+            for category, files in FILE_TYPE_CATEGORIES.items():
+                for ext, _ in files:
+                    st.session_state[f"file_type_{ext}"] = False
+
+    # Category-based file type selection
     selected_extensions = []
-    for ext, lang in SUPPORTED_EXTENSIONS.items():
-        if st.sidebar.checkbox(f"{lang} ({ext})", value=True):
-            selected_extensions.append(ext)
+
+    for category, file_types in FILE_TYPE_CATEGORIES.items():
+        with st.sidebar.expander(f"📁 {category}", expanded=False):
+            # Add category-level select/deselect
+            cat_col1, cat_col2 = st.columns(2)
+
+            with cat_col1:
+                if st.button(
+                    "✅", key=f"select_cat_{category}", help=f"Select all {category}"
+                ):
+                    for ext, _ in file_types:
+                        st.session_state[f"file_type_{ext}"] = True
+
+            with cat_col2:
+                if st.button(
+                    "❌",
+                    key=f"deselect_cat_{category}",
+                    help=f"Deselect all {category}",
+                ):
+                    for ext, _ in file_types:
+                        st.session_state[f"file_type_{ext}"] = False
+
+            # Individual file type checkboxes
+            for ext, lang in file_types:
+                # Use session state to persist checkbox states
+                checkbox_key = f"file_type_{ext}"
+                default_value = st.session_state.get(
+                    checkbox_key, True
+                )  # Default to True
+
+                if st.checkbox(
+                    f"{lang} ({ext})",
+                    value=default_value,
+                    key=checkbox_key,
+                    help=f"Include {lang} files in documentation generation",
+                ):
+                    selected_extensions.append(ext)
+
+    # Display selection summary
+    if selected_extensions:
+        st.sidebar.success(f"✅ {len(selected_extensions)} file types selected")
+    else:
+        st.sidebar.warning("⚠️ No file types selected")
 
     # File size limit
     max_file_size = st.sidebar.slider(
@@ -119,14 +175,217 @@ def sidebar_config() -> Dict[str, Any]:
         "Generate Directory Structure Visualization", value=True
     )
 
-    return {
+    # Performance settings
+    st.sidebar.subheader("Performance Settings")
+    concurrency_method = st.sidebar.radio(
+        "Processing Method:",
+        ["Sequential", "Batch Processing", "Full Concurrent"],
+        index=1,  # Default to Batch Processing
+        help="Choose how to process multiple files.\nBatch Processing is recommended for all use cases.\nFull Concurrent is marginally faster for larger projects but may cause issues currently.",
+    )
+
+    # Initialize the config dictionary
+    config = {
         "api_key": api_key,
         "doc_level": doc_level,
         "selected_extensions": selected_extensions,
         "max_file_size": max_file_size,
         "generate_overview": generate_overview,
         "generate_dir_structure": generate_dir_structure,
+        "concurrency_method": concurrency_method,
     }
+
+    # Add method-specific options
+    if concurrency_method == "Batch Processing":
+        config["batch_size"] = st.sidebar.slider(
+            "Batch Size",
+            min_value=2,
+            max_value=5,
+            value=3,
+            help="Number of files to process simultaneously in each batch",
+        )
+    elif concurrency_method == "Full Concurrent":
+        config["max_workers"] = st.sidebar.slider(
+            "Max Workers",
+            min_value=2,
+            max_value=8,
+            value=3,
+            help="Maximum number of concurrent threads (keep low to avoid API issues)",
+        )
+
+    return config
+
+
+def display_file_summary_enhanced(files: Dict[str, Dict[str, Any]]) -> bool:
+    """Enhanced file summary with categorized breakdown.
+
+    Args:
+        files: Dictionary of extracted files
+
+    Returns:
+        Boolean indicating if valid files were found
+    """
+    if not files:
+        st.warning("No supported code files found in the archive.")
+        return False
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.success(f"Found {len(files)} code files")
+
+        # Count files by language and categorize
+        language_counts = {}
+        category_counts = {}
+
+        for file_info in files.values():
+            lang = file_info["language"]
+            language_counts[lang] = language_counts.get(lang, 0) + 1
+
+            # Find which category this language belongs to
+            file_ext = None
+            for ext, language in SUPPORTED_EXTENSIONS.items():
+                if language == lang:
+                    file_ext = ext
+                    break
+
+            if file_ext:
+                for category, file_types in FILE_TYPE_CATEGORIES.items():
+                    if any(ext == file_ext for ext, _ in file_types):
+                        category_counts[category] = category_counts.get(category, 0) + 1
+                        break
+
+        # Display by category
+        st.write("**Files by Category:**")
+        for category, count in sorted(category_counts.items()):
+            st.write(f"📁 {category}: {count} files")
+
+        # Show top languages
+        st.write("**Top Languages:**")
+        top_languages = sorted(
+            language_counts.items(), key=lambda x: x[1], reverse=True
+        )[:5]
+        for lang, count in top_languages:
+            st.write(f"• {lang}: {count} files")
+
+        if len(language_counts) > 5:
+            st.write(f"... and {len(language_counts) - 5} more languages")
+
+    with col2:
+        # Find all unique directories
+        directories = set()
+        for file_path, file_info in files.items():
+            dir_path = file_info.get("directory", "")
+            if dir_path:
+                directories.add(dir_path)
+
+        num_dirs = len(directories)
+        if num_dirs > 0:
+            st.write("**Project Structure:**")
+            st.write(f"📂 {num_dirs} directories")
+            st.write(f"📄 {len(files)} files")
+
+        # List files found by directory
+        with st.expander("📋 Detailed File List", expanded=False):
+            # Display root files first
+            root_files = [
+                path for path, info in files.items() if not info.get("directory")
+            ]
+            if root_files:
+                st.markdown("**📁 Root Directory:**")
+                for file_path in sorted(root_files):
+                    file_name = os.path.basename(file_path)
+                    file_info = files[file_path]
+                    st.write(f"• `{file_name}` ({file_info['language']})")
+
+            # Then display each directory
+            for directory in sorted(directories):
+                st.markdown(f"**📁 {directory}/**")
+                dir_files = [
+                    path
+                    for path, info in files.items()
+                    if info.get("directory") == directory
+                ]
+                for file_path in sorted(dir_files):
+                    file_name = os.path.basename(file_path)
+                    file_info = files[file_path]
+                    st.write(f"• `{file_name}` ({file_info['language']})")
+
+    return True
+
+
+# Alternative compact version for smaller projects
+def display_file_type_selector_compact():
+    """Compact file type selector for when space is limited."""
+    st.sidebar.subheader("Quick File Type Selection")
+
+    # Preset combinations
+    preset = st.sidebar.selectbox(
+        "Preset Combinations:",
+        [
+            "Custom Selection",
+            "Web Development (HTML/CSS/JS/TS)",
+            "Python Project (PY/JSON/YAML/MD)",
+            "Java Enterprise (Java/XML/Properties/SQL)",
+            "Full Stack (Web + Backend + Config)",
+            "Data Science (Python/R/Julia/Jupyter)",
+            "DevOps (Shell/Docker/YAML/Config)",
+            "Everything",
+        ],
+        help="Quick presets for common project types",
+    )
+
+    selected_extensions = []
+
+    if preset == "Web Development (HTML/CSS/JS/TS)":
+        selected_extensions = [
+            ".html",
+            ".css",
+            ".scss",
+            ".js",
+            ".ts",
+            ".jsx",
+            ".tsx",
+            ".json",
+        ]
+    elif preset == "Python Project (PY/JSON/YAML/MD)":
+        selected_extensions = [".py", ".json", ".yaml", ".yml", ".md", ".toml", ".ini"]
+    elif preset == "Java Enterprise (Java/XML/Properties/SQL)":
+        selected_extensions = [".java", ".xml", ".properties", ".sql", ".json", ".yaml"]
+    elif preset == "Full Stack (Web + Backend + Config)":
+        selected_extensions = [
+            ".py",
+            ".js",
+            ".ts",
+            ".html",
+            ".css",
+            ".sql",
+            ".json",
+            ".yaml",
+            ".md",
+        ]
+    elif preset == "Data Science (Python/R/Julia/Jupyter)":
+        selected_extensions = [".py", ".r", ".R", ".jl", ".json", ".csv", ".yaml"]
+    elif preset == "DevOps (Shell/Docker/YAML/Config)":
+        selected_extensions = [
+            ".sh",
+            ".bash",
+            ".dockerfile",
+            ".yaml",
+            ".yml",
+            ".json",
+            ".toml",
+            ".env",
+        ]
+    elif preset == "Everything":
+        selected_extensions = list(SUPPORTED_EXTENSIONS.keys())
+
+    # If "Custom Selection" is chosen, show the full categorized interface
+    if preset == "Custom Selection":
+        return None  # Signal to use the full interface
+
+    st.sidebar.info(f"✅ Selected {len(selected_extensions)} file types")
+    return selected_extensions
 
 
 def file_uploader_section() -> Tuple[Optional[Any], Optional[str], Optional[str]]:
@@ -266,12 +525,7 @@ def display_documentation(documentation: Dict[str, str]):
 
 
 def display_download_options(documentation: Dict[str, str], key_suffix: str = ""):
-    """Display download options for the documentation.
-
-    Args:
-        documentation: Dictionary of generated documentation
-        key_suffix: Suffix for widget keys to avoid duplicates
-    """
+    """Display download options for the documentation."""
     st.subheader("Download Options")
 
     # Create combined documentation
@@ -281,45 +535,47 @@ def display_download_options(documentation: Dict[str, str], key_suffix: str = ""
 
     with col1:
         st.download_button(
-            label="Download as Markdown",
+            label="📥 Download as Markdown",
             data=combined_docs,
             file_name="documentation.md",
             mime="text/markdown",
             key=f"download_markdown{key_suffix}",
+            help="Download as Markdown file",
         )
 
     with col2:
-        # Download as JSON for programmatic use
         json_data = json.dumps(documentation, indent=2)
         st.download_button(
-            label="Download as JSON",
+            label="📥 Download as JSON",
             data=json_data,
             file_name="documentation.json",
             mime="application/json",
             key=f"download_json{key_suffix}",
+            help="Download as JSON file for programmatic use",
         )
 
     with col3:
-        # Generate and download html
         try:
-            with st.spinner("Generating html file..."):
-                output_data = convert_markdown_to_html(
-                    combined_docs, title="Project Documentation"
-                )
-
-                file_name = "documentation.html"
-                mime_type = "text/html"
-                button_label = "Download as HTML"
+            html_content = convert_markdown_to_html(
+                combined_docs, title="Project Documentation"
+            )
 
             st.download_button(
-                label=button_label,
-                data=output_data,
-                file_name=file_name,
-                mime=mime_type,
-                key=f"download_pdf{key_suffix}",
+                label="📥 Download as HTML",
+                data=html_content,
+                file_name="documentation.html",
+                mime="text/html",
+                key=f"download_html{key_suffix}",
+                help="Download as interactive HTML file",
             )
         except Exception as e:
-            st.error(f"Error generating document: {str(e)}")
+            st.error(f"Error generating HTML: {str(e)}")
+
+    # Show save confirmation if this is a new generation
+    if key_suffix == "_current":
+        st.info(
+            "💾 This documentation has been automatically saved to your session history!"
+        )
 
 
 def display_generation_time(start_time: float):

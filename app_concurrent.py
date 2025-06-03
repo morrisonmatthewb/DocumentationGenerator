@@ -1,7 +1,5 @@
 """
 Automatic Documentation Generator - Concurrent Version
-
-This version fixes the ScriptRunContext threading issues with Streamlit.
 """
 
 import streamlit as st
@@ -12,9 +10,6 @@ from utils.documentation_history import (
     display_documentation_history_sidebar,
     save_current_documentation,
 )
-
-
-# Import from utils
 from utils.ui import (
     setup_page,
     sidebar_config,
@@ -24,8 +19,6 @@ from utils.ui import (
     display_documentation,
     display_download_options,
 )
-
-# Import from core - using the fixed concurrent implementation
 from core.concurrent_docgen import (
     process_archive,
     generate_all_documentation_concurrent_fixed,
@@ -55,7 +48,6 @@ def main():
     tab1, tab2 = st.tabs(["📝 Generate Documentation", "📚 Documentation History"])
 
     with tab1:
-        # Your existing generation logic
         if not config["api_key"]:
             st.warning("Please enter your Anthropic API key to continue")
             return
@@ -111,7 +103,6 @@ def main():
                         # Store in session state
                         st.session_state.documentation = documentation
 
-                        # *** NEW: Save to history ***
                         save_current_documentation(documentation, uploaded_file.name)
 
                         # Display results

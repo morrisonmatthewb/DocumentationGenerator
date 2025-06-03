@@ -106,7 +106,7 @@ def generate_documentation(file_path: str, file_info: Dict[str, Any],
     elif doc_level == "expert":
         detail_instruction = "Provide extremely detailed documentation with advanced insights and best practices."
         max_tokens = 6000
-    else:  # comprehensive (default)
+    else:
         detail_instruction = "Provide comprehensive documentation with a good balance of detail."
         max_tokens = 4000
     

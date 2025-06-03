@@ -1,5 +1,5 @@
 """
-Core documentation generation with concurrency support.
+Core documentation generation with concurrency support - Fixed for Streamlit threading.
 """
 
 import time
@@ -7,11 +7,12 @@ import asyncio
 import streamlit as st
 from typing import Dict, Any, List, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
+import queue
 
 from utils.api import initialize_client, generate_documentation, generate_project_overview
 from utils.archive import extract_files_from_archive
 from utils.visualization import build_directory_tree
-from utils.ui import display_documentation_progress, display_generation_time
 
 
 def process_archive(uploaded_file, file_extension, config):
@@ -39,30 +40,29 @@ def process_archive(uploaded_file, file_extension, config):
         return None
 
 
-def generate_file_documentation(args):
+def generate_file_documentation_worker(args):
     """
-    Generate documentation for a single file (used for parallel processing).
+    Generate documentation for a single file (worker function for threading).
+    This function runs in a background thread without Streamlit context.
     
     Args:
-        args: Tuple of (file_path, file_info, client, doc_level, progress_callback)
+        args: Tuple of (file_path, file_info, client, doc_level)
         
     Returns:
-        Tuple of (file_path, documentation)
+        Tuple of (file_path, documentation, success)
     """
-    file_path, file_info, client, doc_level, idx, total = args
-    documentation = generate_documentation(file_path, file_info, client, doc_level)
+    file_path, file_info, client, doc_level = args
     
-    # Update progress in the main thread if callback provided
-    if st.session_state.get('progress_placeholder'):
-        progress = (idx + 1) / total
-        st.session_state['progress_values'][file_path] = progress
-    
-    return file_path, documentation
+    try:
+        documentation = generate_documentation(file_path, file_info, client, doc_level)
+        return file_path, documentation, True
+    except Exception as e:
+        return file_path, f"Error generating documentation: {str(e)}", False
 
 
-def generate_all_documentation_concurrent(files, config, max_workers=5):
+def generate_all_documentation_concurrent_fixed(files, config, max_workers=3):
     """
-    Generate documentation for all files concurrently.
+    Generate documentation for all files concurrently with proper Streamlit threading.
     
     Args:
         files: Dictionary of extracted files
@@ -82,15 +82,6 @@ def generate_all_documentation_concurrent(files, config, max_workers=5):
         st.error(f"Failed to initialize Claude client: {str(e)}")
         return None
     
-    # Setup progress tracking
-    total_files = len(files)
-    st.session_state['progress_values'] = {}
-    progress_placeholder = st.empty()
-    st.session_state['progress_placeholder'] = progress_placeholder
-    
-    # Create progress bar
-    progress_bar = progress_placeholder.progress(0)
-    
     # Generate directory structure visualization if selected
     if config['generate_dir_structure'] and len(files) > 1:
         with st.spinner("Generating directory structure visualization..."):
@@ -101,44 +92,69 @@ def generate_all_documentation_concurrent(files, config, max_workers=5):
             
             # Also create a separate entry for the Mermaid diagram
             documentation["__mermaid_diagram__"] = f"""
-    # Project Directory Structure (Interactive)
-    
-    ```mermaid
-    {mermaid_code}
-    ```
-    """
+# Project Directory Structure (Interactive)
+
+```mermaid
+{mermaid_code}
+```
+"""
     
     # Generate project overview if selected
     if config['generate_overview'] and len(files) > 1:
         with st.spinner("Generating project overview..."):
             documentation["__project_overview__"] = generate_project_overview(files, client)
     
-    # Function to update progress bar
-    def update_progress():
-        while not st.session_state.get('generation_complete', False):
-            if st.session_state.get('progress_values'):
-                progress = sum(st.session_state['progress_values'].values()) / total_files
-                progress_bar.progress(progress)
-            time.sleep(0.1)
+    # Setup progress tracking
+    total_files = len(files)
+    progress_bar = st.progress(0)
+    status_container = st.empty()
+    
+    # Create a queue for progress updates
+    progress_queue = queue.Queue()
+    completed_files = []
+    
+    # Function to update progress from main thread
+    def update_progress_display():
+        while len(completed_files) < total_files:
+            try:
+                # Non-blocking check for progress updates
+                while not progress_queue.empty():
+                    file_path, success = progress_queue.get_nowait()
+                    completed_files.append(file_path)
+                    
+                    # Update progress bar
+                    progress = len(completed_files) / total_files
+                    progress_bar.progress(progress)
+                    
+                    # Update status
+                    if success:
+                        status_container.success(f"Completed: {file_path} ({len(completed_files)}/{total_files})")
+                    else:
+                        status_container.error(f"Failed: {file_path} ({len(completed_files)}/{total_files})")
+                
+                # Small delay to prevent busy waiting
+                time.sleep(0.1)
+                
+            except queue.Empty:
+                time.sleep(0.1)
+                continue
     
     # Start progress updater in a separate thread
-    import threading
-    progress_thread = threading.Thread(target=update_progress)
-    progress_thread.daemon = True
+    progress_thread = threading.Thread(target=update_progress_display, daemon=True)
     progress_thread.start()
     
     try:
-        # Process each file concurrently
+        # Process files concurrently
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Prepare the arguments for each file
+            # Prepare arguments for each file
             file_args = [
-                (file_path, file_info, client, config['doc_level'], idx, total_files)
-                for idx, (file_path, file_info) in enumerate(files.items())
+                (file_path, file_info, client, config['doc_level'])
+                for file_path, file_info in files.items()
             ]
             
             # Submit all tasks
             future_to_file = {
-                executor.submit(generate_file_documentation, args): args[0]
+                executor.submit(generate_file_documentation_worker, args): args[0]
                 for args in file_args
             }
             
@@ -146,36 +162,45 @@ def generate_all_documentation_concurrent(files, config, max_workers=5):
             for future in as_completed(future_to_file):
                 file_path = future_to_file[future]
                 try:
-                    file_path, doc = future.result()
-                    documentation[file_path] = doc
+                    result_file_path, doc, success = future.result()
+                    documentation[result_file_path] = doc
                     
-                    # Update status message
-                    st.write(f"Completed documentation for: {file_path}")
+                    # Signal progress update through queue
+                    progress_queue.put((result_file_path, success))
+                    
                 except Exception as e:
-                    st.error(f"Error processing {file_path}: {str(e)}")
-                    documentation[file_path] = f"Error generating documentation: {str(e)}"
-    finally:
-        # Mark generation as complete
-        st.session_state['generation_complete'] = True
-        
-        # Ensure progress bar shows 100%
-        progress_bar.progress(1.0)
+                    error_msg = f"Error processing {file_path}: {str(e)}"
+                    documentation[file_path] = error_msg
+                    progress_queue.put((file_path, False))
+    
+    except Exception as e:
+        st.error(f"Error in concurrent processing: {str(e)}")
+        return None
+    
+    # Wait for progress thread to finish
+    progress_thread.join(timeout=1.0)
+    
+    # Final progress update
+    progress_bar.progress(1.0)
+    status_container.success(f"Documentation generation completed! ({total_files} files processed)")
     
     # Display generation time
-    display_generation_time(start_time)
+    end_time = time.time()
+    processing_time = end_time - start_time
+    st.success(f"Documentation generated in {processing_time:.2f} seconds")
     
     return documentation
 
 
-# Async version if you prefer using asyncio instead of ThreadPoolExecutor
-async def generate_all_documentation_async(files, config, max_concurrent=5):
+def generate_all_documentation_batch(files, config, batch_size=3):
     """
-    Generate documentation for all files using asyncio.
+    Generate documentation in batches to reduce threading complexity.
+    This is a simpler alternative that processes files in small batches.
     
     Args:
         files: Dictionary of extracted files
         config: Configuration dictionary
-        max_concurrent: Maximum number of concurrent API calls
+        batch_size: Number of files to process in each batch
         
     Returns:
         Dictionary containing all generated documentation
@@ -195,63 +220,62 @@ async def generate_all_documentation_async(files, config, max_concurrent=5):
         with st.spinner("Generating directory structure visualization..."):
             tree, ascii_tree, mermaid_code = build_directory_tree(files)
             
-            # Store both visualizations
             documentation["__directory_structure__"] = ascii_tree
-            
-            # Also create a separate entry for the Mermaid diagram
             documentation["__mermaid_diagram__"] = f"""
-    # Project Directory Structure (Interactive)
-    
-    ```mermaid
-    {mermaid_code}
-    ```
-    """
+# Project Directory Structure (Interactive)
+
+```mermaid
+{mermaid_code}
+```
+"""
     
     # Generate project overview if selected
     if config['generate_overview'] and len(files) > 1:
         with st.spinner("Generating project overview..."):
             documentation["__project_overview__"] = generate_project_overview(files, client)
     
-    # Setup progress tracking
-    total_files = len(files)
+    # Process files in batches
+    file_items = list(files.items())
+    total_files = len(file_items)
     progress_bar = st.progress(0)
-    completed = 0
     
-    # Create a semaphore to limit concurrent API calls
-    semaphore = asyncio.Semaphore(max_concurrent)
-    
-    async def process_file(file_path, file_info):
-        async with semaphore:
-            # Run the API call in a thread to avoid blocking the event loop
-            doc = await asyncio.to_thread(
-                generate_documentation, 
-                file_path, 
-                file_info, 
-                client, 
-                config['doc_level']
-            )
+    for i in range(0, total_files, batch_size):
+        batch = file_items[i:i + batch_size]
+        
+        # Process current batch concurrently
+        with ThreadPoolExecutor(max_workers=min(batch_size, len(batch))) as executor:
+            # Submit batch tasks
+            batch_futures = {
+                executor.submit(
+                    generate_file_documentation_worker,
+                    (file_path, file_info, client, config['doc_level'])
+                ): file_path
+                for file_path, file_info in batch
+            }
             
-            nonlocal completed
-            completed += 1
-            progress_bar.progress(completed / total_files)
-            st.write(f"Completed documentation for: {file_path}")
-            
-            return file_path, doc
+            # Process batch results
+            for future in as_completed(batch_futures):
+                file_path = batch_futures[future]
+                try:
+                    result_file_path, doc, success = future.result()
+                    documentation[result_file_path] = doc
+                    
+                    # Update progress
+                    completed = len([k for k in documentation.keys() 
+                                   if not k.startswith('__')])
+                    progress_bar.progress(completed / total_files)
+                    st.write(f"Completed: {result_file_path}")
+                    
+                except Exception as e:
+                    st.error(f"Error processing {file_path}: {str(e)}")
+                    documentation[file_path] = f"Error: {str(e)}"
     
-    # Create tasks for all files
-    tasks = [
-        process_file(file_path, file_info)
-        for file_path, file_info in files.items()
-    ]
-    
-    # Wait for all tasks to complete
-    results = await asyncio.gather(*tasks)
-    
-    # Process results
-    for file_path, doc in results:
-        documentation[file_path] = doc
+    # Final progress update
+    progress_bar.progress(1.0)
     
     # Display generation time
-    display_generation_time(start_time)
+    end_time = time.time()
+    processing_time = end_time - start_time
+    st.success(f"Documentation generated in {processing_time:.2f} seconds")
     
     return documentation

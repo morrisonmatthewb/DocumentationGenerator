@@ -29,7 +29,7 @@ load_dotenv()
 def setup_page():
     """Configure the Streamlit page settings."""
     st.set_page_config(
-        page_title="Advanced Documentation Generator", page_icon="📚", layout="wide"
+        page_title="Documentation Generator", page_icon="📚", layout="wide"
     )
 
     # Apply custom styling

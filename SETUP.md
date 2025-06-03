@@ -1,130 +1,388 @@
-# Documentation Generator Setup Guide
+# Setup Guide - Documentation Generator
 
-This guide explains how to set up and run the Documentation Generator application.
+This guide will walk you through setting up the Documentation Generator on your system.
 
-## Automatic Setup
+## Prerequisites
 
-We've provided an automated setup script that will install all necessary dependencies and run the application.
+### System Requirements
 
-### On Linux/macOS:
+* **Python 3.8 or higher** (Python 3.9+ recommended)
+* **4GB+ RAM** (8GB+ recommended for large projects)
+* **Internet connection** (for Claude API access)
+* **Web browser** (Chrome, Firefox, Safari, or Edge)
 
-1. Open a terminal in the project directory
-2. Run the following command:
-   ```bash
-   ./run.sh
-   ```
-3. If prompted, enter your administrator password to install system dependencies
-4. You'll be asked to enter your Anthropic API key if not already configured
+### Required Accounts
 
-### On Windows:
+* **Anthropic API Key** - Sign up at [console.anthropic.com](https://console.anthropic.com/)
 
-1. Open the project directory
-2. Double-click on `run.bat`
-3. If prompted with administrator requests, approve them to install dependencies
-4. You'll be asked to enter your Anthropic API key if not already configured
+## Quick Start
 
-## Setup Options
-
-The setup script has several options:
-
-* `--setup-only`: Only install dependencies without running the app
-* `--venv PATH`: Specify a custom path for the virtual environment (default: `.venv`)
-
-Example:
+### 1. Clone the Repository
 
 ```bash
-./run.sh --setup-only
+git clone <your-repository-url>
+cd advanced-documentation-generator
 ```
 
-## Manual Installation
-
-If the automatic setup doesn't work for your system, you can follow these manual installation steps:
-
-### System Dependencies
-
-#### Ubuntu/Debian:
+### 2. Install Python Dependencies
 
 ```bash
-sudo apt-get update
-sudo apt-get install -y python3-dev python3-pip python3-venv build-essential \
-    libcairo2-dev libpango1.0-dev libgdk-pixbuf2.0-dev libffi-dev shared-mime-info \
-    p7zip-full p7zip-rar unrar libxml2-dev libxslt1-dev
+# Install all required packages
+pip install -r requirements.txt
 ```
 
-#### Fedora/RHEL/CentOS:
+### 3. Set Up API Key
 
 ```bash
-sudo dnf install -y python3-devel python3-pip gcc cairo-devel pango-devel \
-    gdk-pixbuf2-devel libffi-devel redhat-rpm-config p7zip p7zip-plugins \
-    unrar libxml2-devel libxslt-devel
+# Copy the environment template
+cp .env.example .env
+
+# Edit the .env file with your API key
+echo "ANTHROPIC_API_KEY=your_api_key_here" > .env
 ```
 
-#### macOS:
+### 4. Run the Application
 
 ```bash
-brew install cairo pango gdk-pixbuf libffi p7zip libxml2 libxslt unrar
+streamlit run app_concurrent.py
 ```
 
-#### Windows:
+The app will open in your browser at `http://localhost:8501`
 
-Install the following using chocolatey or manually:
+## Detailed Installation
 
-- Python 3.7+
-- 7zip
-- unrar
+### Step 1: Python Environment Setup
 
-### Python Setup
+#### Option A: Using pip (Recommended)
 
-1. Create a virtual environment:
+```bash
+# Create a virtual environment (recommended)
+python -m venv venv
 
-   ```bash
-   python3 -m venv .venv
-   ```
-2. Activate the virtual environment:
+# Activate virtual environment
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
 
-   - On Linux/macOS: `source .venv/bin/activate`
-   - On Windows: `.venv\Scripts\activate`
-3. Install Python dependencies:
+# Install dependencies
+pip install -r requirements.txt
+```
 
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Create a `.env` file with your Anthropic API key:
+#### Option B: Using conda
 
-   ```
-   ANTHROPIC_API_KEY=your_api_key_here
-   ```
-5. Run the application:
+```bash
+# Create conda environment
+conda create -n docgen python=3.9
+conda activate docgen
 
-   ```bash
-   streamlit run app.py
-   ```
+# Install dependencies
+pip install -r requirements.txt
+```
+
+#### Option C: Using Poetry
+
+```bash
+# Install Poetry if you haven't already
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Install dependencies
+poetry install
+poetry shell
+```
+
+### Step 2: Archive Support
+
+For full archive format support, install additional dependencies:
+
+```bash
+# For 7z support
+pip install py7zr
+
+# For RAR support
+pip install rarfile
+
+# For additional archive formats
+pip install patoolib
+```
+
+ **Note** : Some archive formats may require system-level tools:
+
+* **RAR** : Install WinRAR or unrar
+* **7z** : Install 7-Zip
+* **TAR/GZ/BZ2** : Usually included with Python
+
+### Step 3: API Key Configuration
+
+#### Method 1: Environment File (Recommended)
+
+```bash
+# Create .env file
+cp .env.example .env
+
+# Edit with your favorite editor
+nano .env
+# or
+code .env
+```
+
+Add your API key:
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-api03-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+#### Method 2: System Environment Variable
+
+```bash
+# On Windows (Command Prompt)
+set ANTHROPIC_API_KEY=your_api_key_here
+
+# On Windows (PowerShell)
+$env:ANTHROPIC_API_KEY="your_api_key_here"
+
+# On macOS/Linux
+export ANTHROPIC_API_KEY=your_api_key_here
+```
+
+#### Method 3: Streamlit Secrets
+
+```bash
+# Create Streamlit secrets directory
+mkdir -p ~/.streamlit
+
+# Add to secrets.toml
+echo 'ANTHROPIC_API_KEY = "your_api_key_here"' >> ~/.streamlit/secrets.toml
+```
+
+### Step 4: Configuration (Optional)
+
+#### Customize Application Settings
+
+Edit `config/constants.py` to customize:
+
+```python
+# Documentation detail levels
+DEFAULT_DOC_LEVEL = "comprehensive"  # basic, comprehensive, expert
+
+# File size limits (MB)
+DEFAULT_MAX_FILE_SIZE_MB = 5
+MAX_FILE_SIZE_RANGE = (1, 20)
+
+# Claude API settings
+DEFAULT_MODEL = "claude-3-7-sonnet-20250219"
+DEFAULT_TEMPERATURE = 0.2
+```
+
+#### Add Custom File Types
+
+```python
+# In config/constants.py
+SUPPORTED_EXTENSIONS = {
+    # Add your custom file types
+    '.your_ext': 'Your Language',
+    # ... existing types
+}
+```
+
+#### Customize UI Theme
+
+```python
+# In config/constants.py, modify APP_CSS
+APP_CSS = """
+    h1, h2, h3 {
+        color: #your_color;  # Change heading color
+    }
+    .stButton>button {
+        background-color: #your_color;  # Change button color
+    }
+"""
+```
+
+## Testing Your Installation
+
+### 1. Basic Functionality Test
+
+```bash
+# Run the application
+streamlit run app_concurrent.py
+
+# Check that it loads without errors
+# Try uploading a small test archive
+```
+
+### 2. API Connection Test
+
+```python
+# Test your API key in Python
+import anthropic
+client = anthropic.Anthropic(api_key="your_api_key")
+response = client.messages.create(
+    model="claude-3-7-sonnet-20250219",
+    max_tokens=100,
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+print(response.content[0].text)
+```
+
+### 3. Archive Support Test
+
+Create a test ZIP file with some code files and try uploading it through the interface.
 
 ## Troubleshooting
 
-### PDF Generation Issues
+### Common Issues
 
-If you encounter issues with PDF generation:
+#### 1. **API Key Issues**
 
-1. Ensure that you have installed all system dependencies for WeasyPrint
-2. Try updating WeasyPrint: `pip install --upgrade weasyprint`
-3. Fall back to the HTML export option, which should work automatically
+```
+Error: Failed to initialize Claude client
+```
 
-### Archive Extraction Issues
+**Solutions:**
 
-If you have trouble extracting certain archive formats:
+* Verify your API key is correct
+* Check that you have credits in your Anthropic account
+* Ensure the API key has proper permissions
 
-1. Ensure that the correct tools are installed (7zip, unrar)
-2. Check if the archive requires a specific version of these tools
-3. Try extracting the archive manually and then processing the extracted files
+#### 2. **Import Errors**
 
-### Other Issues
+```
+ModuleNotFoundError: No module named 'streamlit'
+```
 
-If you encounter other issues:
+**Solutions:**
 
-1. Check the console output for specific error messages
-2. Ensure that your Python version is 3.7 or higher
-3. Try reinstalling the dependencies with `pip install --upgrade -r requirements.txt`
-4. Check that your Anthropic API key is valid and correctly set in the `.env` file
+* Ensure virtual environment is activated
+* Re-run `pip install -r requirements.txt`
+* Check Python version compatibility
 
-For more detailed troubleshooting, please refer to the README.md file.
+#### 3. **Archive Extraction Errors**
+
+```
+Error extracting archive: Failed to extract archive
+```
+
+**Solutions:**
+
+* Install additional archive support: `pip install py7zr rarfile patoolib`
+* Check that the uploaded file is a valid archive
+* Ensure the archive isn't corrupted
+
+#### 4. **Memory Issues**
+
+```
+MemoryError or app crashes with large files
+```
+
+**Solutions:**
+
+* Reduce max file size in settings
+* Use fewer concurrent workers
+* Switch to Sequential processing mode
+* Close other applications to free up RAM
+
+#### 5. **Port Already in Use**
+
+```
+Address already in use
+```
+
+**Solutions:**
+
+```bash
+# Use a different port
+streamlit run app_concurrent.py --server.port 8502
+
+# Or kill existing Streamlit processes
+pkill -f streamlit
+```
+
+#### 6. **Browser Not Opening**
+
+```bash
+# Manually open browser
+streamlit run app_concurrent.py --server.headless true
+# Then visit http://localhost:8501
+```
+
+### Debug Mode
+
+Enable debug logging:
+
+```bash
+# Run with debug output
+streamlit run app_concurrent.py --logger.level debug
+
+# Or set environment variable
+export STREAMLIT_LOGGER_LEVEL=debug
+streamlit run app_concurrent.py
+```
+
+### Performance Tuning
+
+#### For Large Projects
+
+```python
+# In config/constants.py
+DEFAULT_MAX_FILE_SIZE_MB = 10  # Increase if needed
+MAX_FILE_SIZE_RANGE = (1, 50)  # Allow larger files
+
+# Use fewer concurrent workers to avoid API limits
+# Set in sidebar: Max Workers = 2-3
+```
+
+#### For Slow Connections
+
+```python
+# Increase timeouts in utils/api.py
+# Add timeout parameters to API calls
+response = client.messages.create(
+    # ... other parameters
+    timeout=60.0  # Increase timeout
+)
+```
+
+### Security Considerations
+
+#### API Key Security
+
+* ✅ Use `.env` files (never commit API keys)
+* ✅ Set proper file permissions: `chmod 600 .env`
+* ✅ Use environment variables in production
+* ❌ Never hardcode API keys in source code
+
+#### File Upload Security
+
+* The app processes uploaded archives - only upload trusted files
+* Archives are extracted to temporary directories and cleaned up
+* File size limits help prevent resource exhaustion
+
+## Dependencies
+
+### Required Packages
+
+```
+streamlit>=1.28.0          # Web application framework
+anthropic>=0.3.0           # Claude AI API client
+python-dotenv>=0.19.0      # Environment variable management
+markdown2>=2.4.0           # Markdown to HTML conversion
+```
+
+### Optional Packages
+
+```
+py7zr>=0.20.0             # 7z archive support
+rarfile>=4.0              # RAR archive support  
+patoolib>=1.12.0          # Additional archive formats
+```
+
+### Archive Format Support Matrix
+
+| Format     | Required Package | Notes                      |
+| ---------- | ---------------- | -------------------------- |
+| ZIP        | ✅ Built-in      | Python standard library    |
+| TAR/GZ/BZ2 | ✅ Built-in      | Python standard library    |
+| 7Z         | `py7zr`        | Install with pip           |
+| RAR        | `rarfile`      | May need system unrar tool |
+| Others     | `patoolib`     | Requires system tools      |

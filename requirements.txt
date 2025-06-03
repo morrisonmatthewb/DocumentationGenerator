@@ -3,7 +3,6 @@ anthropic==0.22.0
 zipfile38==0.0.3
 python-dotenv==1.0.1
 markdown2==2.4.12
-weasyprint==60.2
 py7zr==0.20.8
 rarfile==4.1
 pyunpack==0.3

@@ -21,6 +21,9 @@ from config.constants import (
 )
 from utils.documentation import build_combined_documentation
 from utils.html import convert_markdown_to_html
+from utils.demo import get_api_key_ui_for_demo, display_demo_status_sidebar
+from utils.api import is_valid_anthropic_api_key
+
 
 # Load environment variables
 load_dotenv()
@@ -45,36 +48,13 @@ def setup_page():
 
 
 def get_api_key_ui() -> Optional[str]:
-    """
-    Get the API key from environment, Streamlit secrets, or user input.
-    UI-specific version to avoid circular imports.
-
+    """Get and validate api key
+    
     Returns:
-        API key string or None if not available
-    """
-    # Try environment variable first
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-
-    """
-    if api_key:
-        st.sidebar.success("API key loaded from environment")
+        Anthropic API key or Empty String
     """
 
-    # Check session state if environment variable is not available
-    if not api_key and "anthropic_api_key" in st.session_state:
-        api_key = st.session_state.anthropic_api_key
-        st.sidebar.info("API key loaded from session state")
-
-    # If still no API key, ask user
-    if not api_key:
-        api_key = st.text_input(
-            "Enter your Anthropic API Key:",
-            type="password",
-            help="Your API key will be stored for this session only",
-        )
-        if api_key:
-            st.session_state.anthropic_api_key = api_key
-
+    api_key = get_api_key_ui_for_demo()
     return api_key
 
 
@@ -88,6 +68,9 @@ def sidebar_config() -> Dict[str, Any]:
 
     # API key input
     api_key = get_api_key_ui()
+
+    # Display demo status
+    display_demo_status_sidebar()
 
     # Documentation level selection
     doc_level = st.sidebar.radio(

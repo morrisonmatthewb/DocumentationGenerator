@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional
 from utils.api import initialize_client, generate_documentation, generate_project_overview
 from utils.archive import extract_files_from_archive
 from utils.visualization import build_directory_tree
-from utils.ui import display_documentation_progress, display_generation_time
+from utils.ui import display_generation_time
 
 
 def process_archive(uploaded_file, file_extension, config):
@@ -79,14 +79,6 @@ def generate_all_documentation(files, config):
     if config['generate_overview'] and len(files) > 1:
         with st.spinner("Generating project overview..."):
             documentation["__project_overview__"] = generate_project_overview(files, client)
-    
-    # Process each file
-    total_files = len(files)
-    for i, (file_path, file_info) in enumerate(files.items()):
-        display_documentation_progress(i, total_files, file_path)
-        documentation[file_path] = generate_documentation(
-            file_path, file_info, client, config['doc_level']
-        )
     
     # Display generation time
     display_generation_time(start_time)

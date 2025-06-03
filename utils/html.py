@@ -284,44 +284,6 @@ def enhance_html(html_content: str, title: str = "Project Documentation") -> str
                 });
             }
             
-            function addCopyButtons() {
-                const codeBlocks = document.querySelectorAll('pre code');
-                codeBlocks.forEach(block => {
-                    const button = document.createElement('button');
-                    button.textContent = 'Copy';
-                    button.className = 'copy-button';
-                    
-                    const pre = block.parentElement;
-                    pre.appendChild(button);
-                    
-                    button.addEventListener('click', async () => {
-                        try {
-                            await navigator.clipboard.writeText(block.textContent);
-                            button.textContent = 'Copied!';
-                            button.classList.add('copied');
-                            
-                            setTimeout(() => {
-                                button.textContent = 'Copy';
-                                button.classList.remove('copied');
-                            }, 2000);
-                        } catch (err) {
-                            // Fallback for older browsers
-                            const textArea = document.createElement('textarea');
-                            textArea.value = block.textContent;
-                            document.body.appendChild(textArea);
-                            textArea.select();
-                            document.execCommand('copy');
-                            document.body.removeChild(textArea);
-                            
-                            button.textContent = 'Copied!';
-                            setTimeout(() => {
-                                button.textContent = 'Copy';
-                            }, 2000);
-                        }
-                    });
-                });
-            }
-            
             function addSearchFunctionality() {
                 const nav = document.getElementById('navigation');
                 const searchInput = document.createElement('input');
@@ -350,22 +312,10 @@ def enhance_html(html_content: str, title: str = "Project Documentation") -> str
                 });
             }
             
-            // Initialize all features
+            // Initialize features
             generateNavigation();
-            addCopyButtons();
             addSearchFunctionality();
             
-            // Add keyboard shortcuts
-            document.addEventListener('keydown', function(e) {
-                // Ctrl+F or Cmd+F to focus search
-                if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-                    e.preventDefault();
-                    const searchInput = document.querySelector('#navigation input');
-                    if (searchInput) {
-                        searchInput.focus();
-                    }
-                }
-            });
         });
         </script>
     """

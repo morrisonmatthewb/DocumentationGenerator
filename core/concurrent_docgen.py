@@ -1,5 +1,5 @@
 """
-Core documentation generation with concurrency support - Fixed for Streamlit threading.
+Core documentation generation with concurrency support
 """
 
 import time
@@ -9,7 +9,6 @@ from typing import Dict, Any, List, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 import queue
-
 from utils.api import initialize_client, generate_documentation, generate_project_overview
 from utils.archive import extract_files_from_archive
 from utils.visualization import build_directory_tree

@@ -82,7 +82,7 @@ def extract_files_from_archive(uploaded_file, selected_extensions: Optional[List
     file_name = uploaded_file.name
     file_extension = os.path.splitext(file_name)[1].lower()
     
-    # For tar archives with compression (e.g., .tar.gz)
+    # For tar archives with compression 
     if '.tar.' in file_name.lower():
         file_extension = '.' + '.'.join(file_name.split('.')[-2:])
     

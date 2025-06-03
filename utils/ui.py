@@ -55,9 +55,10 @@ def get_api_key_ui() -> Optional[str]:
     # Try environment variable first
     api_key = os.getenv("ANTHROPIC_API_KEY")
 
-    # Print the environment variable for debugging (remove in production)
+    """
     if api_key:
         st.sidebar.success("API key loaded from environment")
+    """
 
     # Check session state if environment variable is not available
     if not api_key and "anthropic_api_key" in st.session_state:
@@ -313,81 +314,6 @@ def display_file_summary_enhanced(files: Dict[str, Dict[str, Any]]) -> bool:
 
     return True
 
-
-# Alternative compact version for smaller projects
-def display_file_type_selector_compact():
-    """Compact file type selector for when space is limited."""
-    st.sidebar.subheader("Quick File Type Selection")
-
-    # Preset combinations
-    preset = st.sidebar.selectbox(
-        "Preset Combinations:",
-        [
-            "Custom Selection",
-            "Web Development (HTML/CSS/JS/TS)",
-            "Python Project (PY/JSON/YAML/MD)",
-            "Java Enterprise (Java/XML/Properties/SQL)",
-            "Full Stack (Web + Backend + Config)",
-            "Data Science (Python/R/Julia/Jupyter)",
-            "DevOps (Shell/Docker/YAML/Config)",
-            "Everything",
-        ],
-        help="Quick presets for common project types",
-    )
-
-    selected_extensions = []
-
-    if preset == "Web Development (HTML/CSS/JS/TS)":
-        selected_extensions = [
-            ".html",
-            ".css",
-            ".scss",
-            ".js",
-            ".ts",
-            ".jsx",
-            ".tsx",
-            ".json",
-        ]
-    elif preset == "Python Project (PY/JSON/YAML/MD)":
-        selected_extensions = [".py", ".json", ".yaml", ".yml", ".md", ".toml", ".ini"]
-    elif preset == "Java Enterprise (Java/XML/Properties/SQL)":
-        selected_extensions = [".java", ".xml", ".properties", ".sql", ".json", ".yaml"]
-    elif preset == "Full Stack (Web + Backend + Config)":
-        selected_extensions = [
-            ".py",
-            ".js",
-            ".ts",
-            ".html",
-            ".css",
-            ".sql",
-            ".json",
-            ".yaml",
-            ".md",
-        ]
-    elif preset == "Data Science (Python/R/Julia/Jupyter)":
-        selected_extensions = [".py", ".r", ".R", ".jl", ".json", ".csv", ".yaml"]
-    elif preset == "DevOps (Shell/Docker/YAML/Config)":
-        selected_extensions = [
-            ".sh",
-            ".bash",
-            ".dockerfile",
-            ".yaml",
-            ".yml",
-            ".json",
-            ".toml",
-            ".env",
-        ]
-    elif preset == "Everything":
-        selected_extensions = list(SUPPORTED_EXTENSIONS.keys())
-
-    # If "Custom Selection" is chosen, show the full categorized interface
-    if preset == "Custom Selection":
-        return None  # Signal to use the full interface
-
-    st.sidebar.info(f"✅ Selected {len(selected_extensions)} file types")
-    return selected_extensions
-
-
 def file_uploader_section() -> Tuple[Optional[Any], Optional[str], Optional[str]]:
     """Display the file uploader and process the uploaded file.
 
@@ -402,7 +328,7 @@ def file_uploader_section() -> Tuple[Optional[Any], Optional[str], Optional[str]
     if uploaded_file is not None:
         # Get archive format for display
         file_extension = os.path.splitext(uploaded_file.name)[1].lower()
-        # Handle special cases like .tar.gz
+
         if ".tar." in uploaded_file.name.lower():
             file_extension = "." + ".".join(uploaded_file.name.split(".")[-2:])
 
@@ -453,7 +379,7 @@ def display_file_summary(files: Dict[str, Dict[str, Any]]) -> bool:
 
             # List files found by directory
             with st.expander("Files found (organized by directory)"):
-                # Display root files first
+                # Display root files 
                 root_files = [
                     path for path, info in files.items() if not info.get("directory")
                 ]
@@ -463,7 +389,7 @@ def display_file_summary(files: Dict[str, Dict[str, Any]]) -> bool:
                         file_name = os.path.basename(file_path)
                         st.code(file_name, language="bash")
 
-                # Then display each directory
+                # Display each directory
                 for directory in sorted(directories):
                     st.markdown(f"**{directory}/**")
                     dir_files = [
@@ -476,18 +402,6 @@ def display_file_summary(files: Dict[str, Dict[str, Any]]) -> bool:
                         st.code(file_name, language="bash")
 
             return True
-
-
-def display_documentation_progress(current: int, total: int, file_path: str):
-    """Display progress during documentation generation.
-
-    Args:
-        current: Current file index
-        total: Total number of files
-        file_path: Current file being processed
-    """
-    progress = st.progress((current) / total)
-    st.write(f"Generating documentation for: {file_path}")
 
 
 def display_documentation(documentation: Dict[str, str]):

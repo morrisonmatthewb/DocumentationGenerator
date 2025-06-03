@@ -1,6 +1,5 @@
 """
 Application constants and configuration settings.
-Enhanced with additional commonly used file types.
 """
 
 SUPPORTED_EXTENSIONS = {

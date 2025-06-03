@@ -1,11 +1,4 @@
-"""
-PDF generation utilities with fallback options.
-"""
-
-from io import BytesIO
 import markdown2
-import streamlit as st
-
 
 def convert_markdown_to_html(markdown_content: str, title: str = "Documentation") -> str:
     """
@@ -113,4 +106,276 @@ def convert_markdown_to_html(markdown_content: str, title: str = "Documentation"
     </html>
     """
     
-    return html_document
+    return enhance_html(html_document);
+
+def enhance_html(html_content: str, title: str = "Project Documentation") -> str:
+    """
+    Enhance the existing HTML with viewer-specific features.
+    
+    Args:
+        html_content: HTML content from convert_markdown_to_html
+        title: Title for the document
+        
+    Returns:
+        Enhanced HTML with navigation and interactive features
+    """
+    # Add navigation and interactive features to the existing HTML
+    enhanced_features = """
+        <!-- Navigation Panel -->
+        <div id="navigation" class="navigation">
+            <h3>📋 Contents</h3>
+            <ul id="nav-list">
+                <!-- Navigation will be populated by JavaScript -->
+            </ul>
+        </div>
+        
+        <style>
+        /* Additional styles for viewer features */
+        .navigation {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            max-height: 80vh;
+            overflow-y: auto;
+            min-width: 200px;
+            max-width: 300px;
+            z-index: 1000;
+        }
+        
+        .navigation h3 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            color: #374151;
+            border-bottom: 1px solid #E5E7EB;
+            padding-bottom: 8px;
+        }
+        
+        .navigation ul {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        
+        .navigation li {
+            margin: 6px 0;
+        }
+        
+        .navigation a {
+            font-size: 13px;
+            padding: 6px 10px;
+            display: block;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: #4B5563;
+        }
+        
+        .navigation a:hover {
+            background-color: #F3F4F6;
+            color: #1E3A8A;
+            transform: translateX(2px);
+        }
+        
+        .navigation .nav-level-1 { padding-left: 10px; font-weight: 600; }
+        .navigation .nav-level-2 { padding-left: 20px; }
+        .navigation .nav-level-3 { padding-left: 30px; font-size: 12px; }
+        .navigation .nav-level-4 { padding-left: 40px; font-size: 12px; }
+        
+        pre {
+            position: relative;
+        }
+        
+        .copy-button {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #374151;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        pre:hover .copy-button {
+            opacity: 1;
+        }
+        
+        .copy-button:hover {
+            background: #1F2937;
+        }
+        
+        .copy-button.copied {
+            background: #059669;
+        }
+        
+        @media (max-width: 768px) {
+            .navigation {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin: 20px auto;
+                max-width: 90%;
+            }
+            
+            body {
+                padding: 12px;
+            }
+        }
+        
+        @media print {
+            .navigation {
+                display: none;
+            }
+        }
+        
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Highlight target section */
+        :target {
+            animation: highlight 2s ease-in-out;
+        }
+        
+        @keyframes highlight {
+            0% { background-color: #FEF3C7; }
+            100% { background-color: transparent; }
+        }
+        </style>
+        
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Generate navigation from headings
+            function generateNavigation() {
+                const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                const navList = document.getElementById('nav-list');
+                
+                if (headings.length === 0) {
+                    document.getElementById('navigation').style.display = 'none';
+                    return;
+                }
+                
+                headings.forEach((heading, index) => {
+                    // Create ID if it doesn't exist
+                    if (!heading.id) {
+                        heading.id = 'heading-' + index;
+                    }
+                    
+                    const level = parseInt(heading.tagName.charAt(1));
+                    const li = document.createElement('li');
+                    const a = document.createElement('a');
+                    
+                    a.href = '#' + heading.id;
+                    a.textContent = heading.textContent;
+                    a.className = 'nav-level-' + level;
+                    
+                    li.appendChild(a);
+                    navList.appendChild(li);
+                });
+            }
+            
+            function addCopyButtons() {
+                const codeBlocks = document.querySelectorAll('pre code');
+                codeBlocks.forEach(block => {
+                    const button = document.createElement('button');
+                    button.textContent = 'Copy';
+                    button.className = 'copy-button';
+                    
+                    const pre = block.parentElement;
+                    pre.appendChild(button);
+                    
+                    button.addEventListener('click', async () => {
+                        try {
+                            await navigator.clipboard.writeText(block.textContent);
+                            button.textContent = 'Copied!';
+                            button.classList.add('copied');
+                            
+                            setTimeout(() => {
+                                button.textContent = 'Copy';
+                                button.classList.remove('copied');
+                            }, 2000);
+                        } catch (err) {
+                            // Fallback for older browsers
+                            const textArea = document.createElement('textarea');
+                            textArea.value = block.textContent;
+                            document.body.appendChild(textArea);
+                            textArea.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(textArea);
+                            
+                            button.textContent = 'Copied!';
+                            setTimeout(() => {
+                                button.textContent = 'Copy';
+                            }, 2000);
+                        }
+                    });
+                });
+            }
+            
+            function addSearchFunctionality() {
+                const nav = document.getElementById('navigation');
+                const searchInput = document.createElement('input');
+                searchInput.type = 'text';
+                searchInput.placeholder = 'Search documentation...';
+                searchInput.style.cssText = `
+                    width: 100%;
+                    padding: 8px;
+                    margin-bottom: 12px;
+                    border: 1px solid #D1D5DB;
+                    border-radius: 4px;
+                    font-size: 14px;
+                `;
+                
+                nav.insertBefore(searchInput, nav.querySelector('h3').nextSibling);
+                
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const content = document.body.textContent.toLowerCase();
+                    
+                    // Simple highlight search (you could make this more sophisticated)
+                    if (searchTerm.length > 2) {
+                        // This is a basic implementation - could be enhanced
+                        console.log('Searching for:', searchTerm);
+                    }
+                });
+            }
+            
+            // Initialize all features
+            generateNavigation();
+            addCopyButtons();
+            addSearchFunctionality();
+            
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // Ctrl+F or Cmd+F to focus search
+                if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                    e.preventDefault();
+                    const searchInput = document.querySelector('#navigation input');
+                    if (searchInput) {
+                        searchInput.focus();
+                    }
+                }
+            });
+        });
+        </script>
+    """
+    
+    # Insert the enhanced features before the closing body tag
+    if "</body>" in html_content:
+        html_content = html_content.replace("</body>", enhanced_features + "</body>")
+    else:
+        html_content += enhanced_features
+    
+    return html_content
+
+

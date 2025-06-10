@@ -30,6 +30,7 @@ from utils.demo import (
     apply_demo_config_restrictions,
 )
 
+from utils.api import (simple_get_api_key)
 # Load environment variables at the application start
 load_dotenv(dotenv_path=".env", verbose=True)
 
@@ -46,9 +47,10 @@ def main():
     # Add documentation history in sidebar
     display_documentation_history_sidebar()
 
+
     # Get configuration and apply demo restrictions
     config = sidebar_config()
-    config = apply_demo_config_restrictions(config)
+    # config = apply_demo_config_restrictions(config)
 
     # Add main tab layout
     tab1, tab2 = st.tabs(["📝 Generate Documentation", "📚 Documentation History"])
@@ -62,15 +64,15 @@ def main():
         uploaded_file, file_extension, archive_format = file_uploader_section()
 
         if uploaded_file is not None:
-            file_size = uploaded_file.size
-            if not check_demo_operation("upload", file_size=file_size):  # NEW: Check limits
-                return
+            # file_size = uploaded_file.size
+            # if not check_demo_operation("upload", file_size=file_size):  # NEW: Check limits
+                # return
             # Processing indicators
             with st.spinner(f"Processing {archive_format} archive..."):
                 files = process_archive(uploaded_file, file_extension, config)
                 if files:
                     # Update demo usage
-                    update_demo_usage('upload')
+                    # update_demo_usage('upload')
 
                     st.success(f"Successfully extracted {archive_format} archive")
                 else:
@@ -88,9 +90,9 @@ def main():
             # Generate documentation button
             if st.button("Generate Documentation", key="generate_docs_button"):
                 # Check demo limits before documentation generation
-                total_size = sum(len(info['content'].encode()) for info in files.values())
-                if not check_demo_operation('process', file_count=len(files), total_size=total_size):
-                    return
+                # total_size = sum(len(info['content'].encode()) for info in files.values())
+                #if not check_demo_operation('process', file_count=len(files), total_size=total_size):
+                    #return
                 with st.container():
                     st.subheader("Documentation Generation Progress")
 
@@ -117,7 +119,7 @@ def main():
 
                     if documentation:
                         # Update demo usage after successful processing
-                        update_demo_usage('process', file_count=len(files), total_size=total_size)
+                        # update_demo_usage('process', file_count=len(files), total_size=total_size)
                         
                         # Store in session state
                         st.session_state.documentation = documentation

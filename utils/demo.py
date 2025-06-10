@@ -1,6 +1,6 @@
 """
 Demo mode implementation with usage limits.
-Add these functions to utils/demo.py and integrate with your existing code.
+Currently not implemented
 """
 
 import streamlit as st
@@ -14,7 +14,7 @@ import os
 # Demo configuration
 DEMO_CONFIG = {
     "trigger_words": ["demo"],
-    "demo_api_key": os.getenv("DEMO_KEY"),
+    "demo_api_key": "demo",
     "daily_limits": {
         "max_files": 2,  # Max files per day
         "max_archives": 3,  # Max archives per day
@@ -82,7 +82,6 @@ class DemoManager:
         """Activate demo mode and return the actual demo API key."""
         st.session_state.demo_usage["is_demo_mode"] = True
 
-        # Show demo mode activation message
         st.info(f"""
         🎭 **Demo Mode Activated!**
         

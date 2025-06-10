@@ -29,8 +29,8 @@ from utils.demo import (
     update_demo_usage,
     apply_demo_config_restrictions,
 )
-
 from utils.api import (simple_get_api_key)
+from utils.debug import show_debug_info
 # Load environment variables at the application start
 load_dotenv(dotenv_path=".env", verbose=True)
 
@@ -91,7 +91,7 @@ def main():
             if st.button("Generate Documentation", key="generate_docs_button"):
                 # Check demo limits before documentation generation
                 # total_size = sum(len(info['content'].encode()) for info in files.values())
-                #if not check_demo_operation('process', file_count=len(files), total_size=total_size):
+                # if not check_demo_operation('process', file_count=len(files), total_size=total_size):
                     #return
                 with st.container():
                     st.subheader("Documentation Generation Progress")
@@ -141,6 +141,8 @@ def main():
 
     with tab2:
         display_documentation_history()
+    if os.getenv("DEBUG") == "true":
+        show_debug_info()
 
 
 if __name__ == "__main__":

@@ -68,6 +68,15 @@ def sidebar_config() -> Dict[str, Any]:
 
     # Display demo status
     # display_demo_status_sidebar()
+    st.text_input(
+        "Enter your Anthropic API Key:",
+        type="password",
+        placeholder="api key here",
+        value=st.session_state.get(
+            "api_key_input", ""
+        ),
+        key="api_key_input",  
+    )
 
     # Documentation level selection
     doc_level = st.sidebar.radio(

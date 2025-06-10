@@ -48,49 +48,49 @@ def get_api_key() -> Optional[str]:
     return api_key
 
 
-def simple_get_api_key() -> Optional[str]:
-    """Simple API key input with validation."""
-
-    # Try environment first
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if api_key and is_valid_api_key(api_key):
-        st.sidebar.success("✅ API key from environment")
-        return api_key
-
-    # Check session state if environment variable is not available
-    if not api_key and "anthropic_api_key" in st.session_state:
-        api_key = st.session_state.anthropic_api_key
-        if (api_key == "demo"):
-            return os.getenv("DEMO_KEY")
-        if (is_valid_api_key(api_key)):
-            return api_key
-
-    # Get user input
-    user_input = st.text_input(
-        "Enter your Anthropic API Key (or 'demo' for demo mode):",
-        type="password",
-        placeholder="sk-ant-api03-... or 'demo'",
-    )
-
+def check_api_input(user_input) -> Optional[str]:
     if not user_input:
+        st.error(
+            "Invalid API key. Please check your key or use 'demo' for demo mode."
+        )
         return None
 
     # Validate input
     if is_valid_api_key(user_input):
         if user_input.lower() in ["demo"]:
-            st.success("🎭 Demo mode activated!")
+            st.success("Demo mode activated!")
             st.session_state.anthropic_api_key = "demo"
             return os.getenv("DEMO_KEY")
         else:
-            st.success("✅ Valid API key!")
+            st.success("Valid API key!")
             st.session_state.anthropic_api_key = user_input
             return user_input
     else:
         st.error(
-            "❌ Invalid API key. Please check your key or use 'demo' for demo mode."
+            "Invalid API key. Please check your key or use 'demo' for demo mode."
         )
         return None
 
+
+def simple_get_api_key() -> Optional[str]:
+    """API key input with validation."""
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if api_key and is_valid_api_key(api_key):
+        st.success("API key loaded from environment")
+        return api_key
+
+    api_input = check_api_input(st.session_state.api_key_input)
+    if not api_input:
+        if "anthropic_api_key" in st.session_state:
+            api_key = st.session_state.anthropic_api_key
+            if (api_key == "demo"):
+                st.warning("Demo Key loaded from session")
+                return os.getenv("DEMO_KEY")
+            if (is_valid_api_key(api_key)):
+                st.warning("API Key loaded from session")
+                return api_key
+    return api_input
 
 def initialize_client(api_key: str) -> anthropic.Anthropic:
     """

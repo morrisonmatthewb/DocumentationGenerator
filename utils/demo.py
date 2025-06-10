@@ -16,13 +16,13 @@ DEMO_CONFIG = {
     "trigger_words": ["demo"],
     "demo_api_key": os.getenv("DEMO_KEY"),
     "daily_limits": {
-        "max_files": 20,  # Max files per day
+        "max_files": 2,  # Max files per day
         "max_archives": 3,  # Max archives per day
         "max_file_size_mb": 20,  # Smaller file size limit
         "max_total_size_mb": 60,  # Max total content per day
     },
     "session_limits": {
-        "max_files": 20,  # Max files per session
+        "max_files": 2,  # Max files per session
         "max_archives": 3,  # Max archives per session
     },
     "feature_restrictions": {
@@ -89,7 +89,7 @@ class DemoManager:
         You've entered "{api_key_input}" which activates our demo mode. 
         This lets you try the documentation generator with some limitations:
         
-        **Daily Limits:**
+        **Limits:**
         - 📄 {DEMO_CONFIG["daily_limits"]["max_files"]} files maximum
         - 📦 {DEMO_CONFIG["daily_limits"]["max_archives"]} archives maximum  
         - 💾 {DEMO_CONFIG["daily_limits"]["max_file_size_mb"]}MB max file size

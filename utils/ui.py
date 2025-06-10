@@ -22,7 +22,7 @@ from config.constants import (
 from utils.documentation import build_combined_documentation
 from utils.html import convert_markdown_to_html
 from utils.demo import get_api_key_ui_for_demo, display_demo_status_sidebar
-from utils.api import is_valid_anthropic_api_key
+from utils.api import is_valid_api_key, simple_get_api_key
 
 
 # Load environment variables
@@ -49,7 +49,7 @@ def setup_page():
 
 def get_api_key_ui() -> Optional[str]:
     """Get and validate api key
-    
+
     Returns:
         Anthropic API key or Empty String
     """
@@ -66,11 +66,8 @@ def sidebar_config() -> Dict[str, Any]:
     """
     st.sidebar.header("Configuration")
 
-    # API key input
-    api_key = get_api_key_ui()
-
     # Display demo status
-    display_demo_status_sidebar()
+    # display_demo_status_sidebar()
 
     # Documentation level selection
     doc_level = st.sidebar.radio(
@@ -167,6 +164,12 @@ def sidebar_config() -> Dict[str, Any]:
         index=1,  # Default to Batch Processing
         help="Choose how to process multiple files.\nBatch Processing is recommended for all use cases.\nFull Concurrent is marginally faster for larger projects but may cause issues currently.",
     )
+
+    # API key input
+    api_key = simple_get_api_key()
+    if not api_key:
+        st.info("👆 Please enter a valid API key above to continue")
+        st.stop()
 
     # Initialize the config dictionary
     config = {
@@ -297,6 +300,7 @@ def display_file_summary_enhanced(files: Dict[str, Dict[str, Any]]) -> bool:
 
     return True
 
+
 def file_uploader_section() -> Tuple[Optional[Any], Optional[str], Optional[str]]:
     """Display the file uploader and process the uploaded file.
 
@@ -362,7 +366,7 @@ def display_file_summary(files: Dict[str, Dict[str, Any]]) -> bool:
 
             # List files found by directory
             with st.expander("Files found (organized by directory)"):
-                # Display root files 
+                # Display root files
                 root_files = [
                     path for path, info in files.items() if not info.get("directory")
                 ]

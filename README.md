@@ -8,7 +8,7 @@ Documentation generator that uses Claude AI to automatically create comprehensiv
 
 * **AI-Powered Documentation** - Uses Claude AI to generate documentation
 * **Multi-Language Support** - Supports 47+ programming languages and file types
-* **Concurrent Processing** - Fast documentation generation with batch and concurrent processing modes
+* **Concurrent Processing** - Fast documentation generation with sequential, batch, and concurrent processing modes
 * **Archive Support** - Handles ZIP, 7z, RAR, TAR, and other common archive formats
 * **Multiple Export Formats** - Download as Markdown, JSON, or interactive HTML
 
@@ -179,6 +179,7 @@ DEBUG=bool
 * **File Types** : Edit `SUPPORTED_EXTENSIONS` in `config/constants.py`
 * **UI Theme** : Modify `APP_CSS` in `config/constants.py`
 * **API Settings** : Adjust `DEFAULT_MODEL` and `DEFAULT_TEMPERATURE` and max token settings
+* **AI Prompts** : Adjust AI prompts for documentation generation in the api.py file
 
 ## Performance Tips
 

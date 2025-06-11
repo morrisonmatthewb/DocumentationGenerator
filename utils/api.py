@@ -49,7 +49,6 @@ def _invalid_api_key_error_message():
 
 def _check_api_input(user_input) -> Optional[str]:
     if not user_input:
-        _invalid_api_key_error_message()
         return None
 
     demo_pw = os.getenv("DEMO_PW")

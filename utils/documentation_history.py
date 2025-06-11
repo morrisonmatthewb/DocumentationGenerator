@@ -286,5 +286,5 @@ def save_current_documentation(
         )
 
     doc_id = DocumentationHistory.add_documentation(documentation, project_name)
-    st.success(f"Documentation saved to history! (ID: {doc_id[:8]}...)")
+    st.success(f"Documentation saved to history. (ID: {doc_id[:8]}...)")
     return doc_id

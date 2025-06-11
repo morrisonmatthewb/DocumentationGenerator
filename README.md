@@ -163,19 +163,22 @@ advanced-documentation-generator/
 ### Environment Variables
 
 ```bash
-# Required
-ANTHROPIC_API_KEY=your_claude_api_key_here
+# Optional personal api key to default to
+ANTHROPIC_API_KEY=str
 
-# Optional
-DEFAULT_DOC_LEVEL=comprehensive
-DEFAULT_MAX_FILE_SIZE_MB=5
+# Variables for demo mode
+DEMO_KEY=str
+DEMO_PW=str
+
+# Enables some debug elements
+DEBUG=bool
 ```
 
 ### Customization
 
 * **File Types** : Edit `SUPPORTED_EXTENSIONS` in `config/constants.py`
 * **UI Theme** : Modify `APP_CSS` in `config/constants.py`
-* **API Settings** : Adjust `DEFAULT_MODEL` and `DEFAULT_TEMPERATURE`
+* **API Settings** : Adjust `DEFAULT_MODEL` and `DEFAULT_TEMPERATURE` and max token settings
 
 ## Performance Tips
 

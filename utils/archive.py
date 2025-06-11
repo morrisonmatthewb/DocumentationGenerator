@@ -140,7 +140,7 @@ def extract_files_from_archive(
     file_extension = os.path.splitext(file_name)[1].lower()
 
     if file_extension not in SUPPORTED_ARCHIVE_FORMATS:
-        raise ValueError(f"Unsupported archive format: {file_extension}")
+        raise ValueError(f"Unsupported archive format: {file_extension}.")
 
     # Extract archive to temp directory
     temp_dir, extraction_dir = extract_archive_to_temp_dir(

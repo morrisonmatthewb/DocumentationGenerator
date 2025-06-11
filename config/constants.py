@@ -144,7 +144,6 @@ FILE_TYPE_CATEGORIES = {
 SUPPORTED_ARCHIVE_FORMATS = {
     ".zip": "ZIP",
     ".7z": "7-Zip",
-    ".rar": "RAR",
 }
 # ZipBomb protections
 MAX_EXTRACT_SIZE = 300 * 1024 * 1024  

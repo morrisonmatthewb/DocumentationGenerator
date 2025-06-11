@@ -67,12 +67,15 @@ def sidebar_config() -> Dict[str, Any]:
         placeholder="api key here",
         value=st.session_state.get("api_key_input", ""),
         key="api_key_input",
+        help="Enter a valid Anthropic API Key (sk-ant-...). Your key will not be stored or recorded anywhere else.",
     )
 
     # API key input
     api_key = get_api_key()
     if not api_key:
-        st.info("Please enter a valid API key above to continue")
+        st.info(
+            "Please enter a valid API key above to continue. Note: Your key will not be stored or recorded anywhere else."
+        )
         st.stop()
 
     st.sidebar.header("Configuration")
@@ -358,9 +361,6 @@ def file_uploader_section() -> Tuple[Optional[Any], Optional[str], Optional[str]
         # Get archive format for display
         file_extension = os.path.splitext(uploaded_file.name)[1].lower()
 
-        if ".tar." in uploaded_file.name.lower():
-            file_extension = "." + ".".join(uploaded_file.name.split(".")[-2:])
-
         archive_format = SUPPORTED_ARCHIVE_FORMATS.get(file_extension, "Unknown")
 
         return uploaded_file, file_extension, archive_format
@@ -447,7 +447,6 @@ def display_documentation(documentation: Dict[str, str]):
             st.markdown(documentation["__directory_structure__"])
 
     # Show interactive diagram if it exists
-
     if "__mermaid_diagram__" in documentation:
         with st.expander("Directory Graph Code", expanded=False):
             mermaid_content = documentation["__mermaid_diagram__"]
@@ -459,6 +458,12 @@ def display_documentation(documentation: Dict[str, str]):
                     mermaid_code = mermaid_content[start:end].strip()
 
                     _display_mermaid_with_link(mermaid_code)
+
+    # Show project overview next if it exists
+    if "__project_overview__" in documentation:
+        with st.expander("Project Overview", expanded=True):
+            st.markdown(documentation["__project_overview__"])
+
     # Then show individual file documentation
     for file_path, doc in documentation.items():
         if file_path not in [
@@ -540,45 +545,3 @@ def _display_mermaid_with_link(mermaid_code: str):
     st.info(
         "📊 Copy this code and paste it into [Mermaid Live Editor](https://mermaid.live/) to view the interactive diagram"
     )
-
-
-def _display_mermaid_with_st_mermaid(mermaid_code: str):
-    """Not working"""
-    from streamlit_mermaid import st_mermaid
-
-    st_mermaid(mermaid_code, height="600px")
-
-
-def _display_mermaid_as_image(mermaid_code: str):
-    """Not working"""
-    import urllib.parse
-
-    encoded_code = urllib.parse.quote(mermaid_code.strip())
-    image_url = f"https://mermaid.ink/img/{encoded_code}"
-
-    try:
-        st.image(image_url, caption="Project Directory Structure")
-    except Exception as e:
-        st.error(f"Could not load diagram: {e}")
-        st.code(mermaid_code, language="text")
-        st.info("Copy this code to https://mermaid.live/ to view the diagram")
-
-def _debug_mermaid_code(documentation: dict):
-    if "__mermaid_diagram__" in documentation:
-        mermaid_content = documentation["__mermaid_diagram__"]
-        
-        if "```mermaid" in mermaid_content:
-            start = mermaid_content.find("```mermaid") + 10
-            end = mermaid_content.find("```", start)
-            if end != -1:
-                mermaid_code = mermaid_content[start:end].strip()
-                
-                st.subheader("Debug: Generated Mermaid Code")
-                st.code(mermaid_code, language="text")
-                
-                # Test the link
-                import urllib.parse
-                import json
-                encoded_code = urllib.parse.quote(json.dumps({"code": mermaid_code}))
-                live_url = f"https://mermaid.live/edit#{encoded_code}"
-                st.markdown(f"[Test in Mermaid Live]({live_url})")

@@ -61,8 +61,7 @@ def _check_api_input(user_input) -> Optional[str]:
             st.session_state.anthropic_api_key = demo_pw
             return os.getenv("DEMO_KEY")
         else:
-            st.success("Valid API key.")
-            st.session_state.anthropic_api_key = user_input
+            st.success("Valid API key entered. Note: Your key is not stored or recorded anywhere else.")
             return user_input
     else:
         _invalid_api_key_error_message()

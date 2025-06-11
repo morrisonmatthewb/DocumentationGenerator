@@ -145,16 +145,11 @@ SUPPORTED_ARCHIVE_FORMATS = {
     ".zip": "ZIP",
     ".7z": "7-Zip",
     ".rar": "RAR",
-    ".tar": "TAR",
-    ".gz": "GZIP",
-    ".bz2": "BZIP2",
-    ".xz": "XZ",
-    ".tgz": "TAR GZIP",
-    ".tbz2": "TAR BZIP2",
-    ".tar.gz": "TAR GZIP",
-    ".tar.bz2": "TAR BZIP2",
-    ".tar.xz": "TAR XZ",
 }
+# ZipBomb protections
+MAX_EXTRACT_SIZE = 300 * 1024 * 1024  
+MAX_FILES = 1000  
+MAX_UPLOAD_SIZE = 200 * 1024 * 1024   
 
 # Claude API configuration
 DEFAULT_MODEL = "claude-3-7-sonnet-20250219"

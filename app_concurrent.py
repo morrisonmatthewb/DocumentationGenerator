@@ -36,7 +36,7 @@ def main():
 
     # Display title and description
     st.title("Documentation Generator")
-    st.write("Upload archive files to generate documentation with improved performance")
+    st.write("Upload archive files to generate documentation using AI.")
 
     # Add documentation history in sidebar
     display_documentation_history_sidebar()

@@ -45,18 +45,18 @@ def build_directory_tree(files: Dict[str, Dict[str, Any]]) -> Tuple[Dict, str, s
         depth = get_depth(dir_path)
         parts = dir_path.split('/')
         dir_name = parts[-1]
-        tree_ascii.append("│" + "   │" * (depth - 1) + "───📁 " + dir_name)
+        tree_ascii.append("│" + "   │" * (depth - 1) + "───" + dir_name)
     
     # Add files in root with proper indentation
     if 'root' in tree:
         for file_name, language in sorted(tree['root']):
-            tree_ascii.append("│───📄 " + file_name + f" ({language})")
+            tree_ascii.append("│───" + file_name + f" ({language})")
     
     # Add files in each directory with proper indentation
     for dir_path in sorted_dirs:
         depth = get_depth(dir_path)
         for file_name, language in sorted(tree[dir_path]):
-            tree_ascii.append("│" + "   │" * depth + "───📄 " + file_name + f" ({language})")
+            tree_ascii.append("│" + "   │" * depth + "─── " + file_name + f" ({language})")
     
     tree_ascii.append("```")
     

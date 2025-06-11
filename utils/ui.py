@@ -83,19 +83,19 @@ def sidebar_config() -> Dict[str, Any]:
             "Documentation Detail Level:",
             DOC_LEVELS[:2],
             index=DOC_LEVELS.index(DEFAULT_DOC_LEVEL),
-            help="Level of detail for the generated documentation. Comprehensive is recommended for most projects. Highest level of detail is disabled in demo mode."
+            help="Level of detail for the generated documentation. Comprehensive is recommended for most projects. Highest level of detail is disabled in demo mode.",
         )
     else:
         doc_level = st.sidebar.radio(
             "Documentation Detail Level:",
             DOC_LEVELS,
             index=DOC_LEVELS.index(DEFAULT_DOC_LEVEL),
-            help="Level of detail for the generated documentation. Comprehensive is recommended for most projects."
+            help="Level of detail for the generated documentation. Comprehensive is recommended for most projects.",
         )
 
     # File type selection with categories
     st.sidebar.subheader("File Types to Process")
-    
+
     # Add "Select All" / "Deselect All" buttons
     col1, col2 = st.sidebar.columns(2)
     with col1:
@@ -220,7 +220,11 @@ def sidebar_config() -> Dict[str, Any]:
     }
 
     # Add method-specific options
-    max_batch_size = MAX_BATCH_SIZE_DEMO_MODE if st.session_state.anthropic_api_key == demo_pw else MAX_BATCH_SIZE
+    max_batch_size = (
+        MAX_BATCH_SIZE_DEMO_MODE
+        if st.session_state.anthropic_api_key == demo_pw
+        else MAX_BATCH_SIZE
+    )
     if concurrency_method == "Batch Processing":
         config["batch_size"] = st.sidebar.slider(
             "Batch Size",
@@ -443,15 +447,18 @@ def display_documentation(documentation: Dict[str, str]):
             st.markdown(documentation["__directory_structure__"])
 
     # Show interactive diagram if it exists
+
     if "__mermaid_diagram__" in documentation:
-        with st.expander("Interactive Directory Graph", expanded=False):
-            st.markdown(documentation["__mermaid_diagram__"], unsafe_allow_html=True)
+        with st.expander("Directory Graph Code", expanded=False):
+            mermaid_content = documentation["__mermaid_diagram__"]
 
-    # Show project overview next if it exists
-    if "__project_overview__" in documentation:
-        with st.expander("Project Overview", expanded=True):
-            st.markdown(documentation["__project_overview__"])
+            if "```mermaid" in mermaid_content:
+                start = mermaid_content.find("```mermaid") + 10
+                end = mermaid_content.find("```", start)
+                if end != -1:
+                    mermaid_code = mermaid_content[start:end].strip()
 
+                    _display_mermaid_with_link(mermaid_code)
     # Then show individual file documentation
     for file_path, doc in documentation.items():
         if file_path not in [
@@ -526,3 +533,52 @@ def display_generation_time(start_time: float):
     end_time = time.time()
     processing_time = end_time - start_time
     st.success(f"Documentation generated in {processing_time:.2f} seconds")
+
+
+def _display_mermaid_with_link(mermaid_code: str):
+    st.code(mermaid_code, language="text")
+    st.info(
+        "📊 Copy this code and paste it into [Mermaid Live Editor](https://mermaid.live/) to view the interactive diagram"
+    )
+
+
+def _display_mermaid_with_st_mermaid(mermaid_code: str):
+    """Not working"""
+    from streamlit_mermaid import st_mermaid
+
+    st_mermaid(mermaid_code, height="600px")
+
+
+def _display_mermaid_as_image(mermaid_code: str):
+    """Not working"""
+    import urllib.parse
+
+    encoded_code = urllib.parse.quote(mermaid_code.strip())
+    image_url = f"https://mermaid.ink/img/{encoded_code}"
+
+    try:
+        st.image(image_url, caption="Project Directory Structure")
+    except Exception as e:
+        st.error(f"Could not load diagram: {e}")
+        st.code(mermaid_code, language="text")
+        st.info("Copy this code to https://mermaid.live/ to view the diagram")
+
+def _debug_mermaid_code(documentation: dict):
+    if "__mermaid_diagram__" in documentation:
+        mermaid_content = documentation["__mermaid_diagram__"]
+        
+        if "```mermaid" in mermaid_content:
+            start = mermaid_content.find("```mermaid") + 10
+            end = mermaid_content.find("```", start)
+            if end != -1:
+                mermaid_code = mermaid_content[start:end].strip()
+                
+                st.subheader("Debug: Generated Mermaid Code")
+                st.code(mermaid_code, language="text")
+                
+                # Test the link
+                import urllib.parse
+                import json
+                encoded_code = urllib.parse.quote(json.dumps({"code": mermaid_code}))
+                live_url = f"https://mermaid.live/edit#{encoded_code}"
+                st.markdown(f"[Test in Mermaid Live]({live_url})")

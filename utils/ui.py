@@ -64,7 +64,7 @@ def sidebar_config() -> Dict[str, Any]:
     st.text_input(
         "Enter your Anthropic API Key:",
         type="password",
-        placeholder="api key here",
+        placeholder="api key (sk-ant-...) or demo password here",
         value=st.session_state.get("api_key_input", ""),
         key="api_key_input",
         help="Enter a valid Anthropic API Key (sk-ant-...). Your key will not be stored or recorded anywhere else.",
@@ -74,7 +74,7 @@ def sidebar_config() -> Dict[str, Any]:
     api_key = get_api_key()
     if not api_key:
         st.info(
-            "Please enter a valid API key above to continue. Note: Your key will not be stored or recorded anywhere else."
+            "Please enter a valid API key or demo password above to continue. Note: Your key will not be stored or recorded anywhere else."
         )
         st.stop()
 

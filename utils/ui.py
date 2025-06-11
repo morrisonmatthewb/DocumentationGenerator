@@ -6,7 +6,7 @@ import os
 import time
 import json
 import streamlit as st
-from typing import Dict, List, Any, Tuple, Optional
+from typing import Dict, Any, Tuple, Optional
 from dotenv import load_dotenv
 from config.constants import (
     SUPPORTED_EXTENSIONS,
@@ -15,14 +15,19 @@ from config.constants import (
     DOC_LEVELS,
     DEFAULT_DOC_LEVEL,
     MAX_FILE_SIZE_RANGE,
+    MAX_FILE_SIZE_DEMO_MODE,
     DEFAULT_MAX_FILE_SIZE_MB,
+    MIN_BATCH_SIZE,
+    MAX_BATCH_SIZE,
+    MAX_BATCH_SIZE_DEMO_MODE,
+    MIN_FULL_CONCURRENCY_THREADS,
+    MAX_FULL_CONCURRENCY_THREADS,
     APP_CSS,
     MERMAID_SCRIPT,
 )
 from utils.documentation import build_combined_documentation
 from utils.html import convert_markdown_to_html
-from utils.demo import get_api_key_ui_for_demo, display_demo_status_sidebar
-from utils.api import is_valid_api_key, simple_get_api_key
+from utils.api import get_api_key
 
 
 # Load environment variables
@@ -47,47 +52,50 @@ def setup_page():
     )
 
 
-def get_api_key_ui() -> Optional[str]:
-    """Get and validate api key
-
-    Returns:
-        Anthropic API key or Empty String
-    """
-
-    api_key = get_api_key_ui_for_demo()
-    return api_key
-
-
 def sidebar_config() -> Dict[str, Any]:
     """Configure and display the sidebar options with categorized file types.
 
     Returns:
         Dictionary containing all configuration options
     """
-    st.sidebar.header("Configuration")
 
-    # Display demo status
-    # display_demo_status_sidebar()
+    demo_pw = os.getenv("DEMO_PW")
+
     st.text_input(
         "Enter your Anthropic API Key:",
         type="password",
         placeholder="api key here",
-        value=st.session_state.get(
-            "api_key_input", ""
-        ),
-        key="api_key_input",  
+        value=st.session_state.get("api_key_input", ""),
+        key="api_key_input",
     )
 
+    # API key input
+    api_key = get_api_key()
+    if not api_key:
+        st.info("Please enter a valid API key above to continue")
+        st.stop()
+
+    st.sidebar.header("Configuration")
+
     # Documentation level selection
-    doc_level = st.sidebar.radio(
-        "Documentation Detail Level:",
-        DOC_LEVELS,
-        index=DOC_LEVELS.index(DEFAULT_DOC_LEVEL),
-    )
+    if st.session_state.anthropic_api_key == demo_pw:
+        doc_level = st.sidebar.radio(
+            "Documentation Detail Level:",
+            DOC_LEVELS[:2],
+            index=DOC_LEVELS.index(DEFAULT_DOC_LEVEL),
+            help="Level of detail for the generated documentation. Comprehensive is recommended for most projects. Highest level of detail is disabled in demo mode."
+        )
+    else:
+        doc_level = st.sidebar.radio(
+            "Documentation Detail Level:",
+            DOC_LEVELS,
+            index=DOC_LEVELS.index(DEFAULT_DOC_LEVEL),
+            help="Level of detail for the generated documentation. Comprehensive is recommended for most projects."
+        )
 
     # File type selection with categories
     st.sidebar.subheader("File Types to Process")
-
+    
     # Add "Select All" / "Deselect All" buttons
     col1, col2 = st.sidebar.columns(2)
     with col1:
@@ -149,16 +157,38 @@ def sidebar_config() -> Dict[str, Any]:
         st.sidebar.warning("⚠️ No file types selected")
 
     # File size limit
+    if st.session_state.anthropic_api_key == demo_pw:
+        max_value = MAX_FILE_SIZE_DEMO_MODE
+    else:
+        max_value = MAX_FILE_SIZE_RANGE[1]
     max_file_size = st.sidebar.slider(
         "Maximum file size (MB)",
         min_value=MAX_FILE_SIZE_RANGE[0],
-        max_value=MAX_FILE_SIZE_RANGE[1],
+        max_value=max_value,
         value=DEFAULT_MAX_FILE_SIZE_MB,
-        help="Files larger than this will be skipped",
+        help="Files larger than this will be skipped. Max file size is limited in demo mode.",
     )
 
     # Project overview option
-    generate_overview = st.sidebar.checkbox("Generate Project Overview", value=True)
+    st.sidebar.subheader("Project Overview")
+    generate_overview = st.sidebar.checkbox(
+        "Generate Project Overview",
+        value=True,
+        help="Generates a project overview section based on direct documentation content, documentation summaries, or file hierarchy depending on project size.",
+    )
+
+    if (
+        st.session_state.anthropic_api_key
+        and st.session_state.anthropic_api_key != demo_pw
+        and generate_overview
+    ):
+        force_content_overview = st.sidebar.checkbox(
+            "Force Content Based Overview",
+            value=False,
+            help="Not recommended, may result in expensive API calls for larger projects. Forces projects of all sizes to use direct documentation content in the project overview.",
+        )
+    else:
+        force_content_overview = False
 
     # Directory structure visualization
     generate_dir_structure = st.sidebar.checkbox(
@@ -167,18 +197,15 @@ def sidebar_config() -> Dict[str, Any]:
 
     # Performance settings
     st.sidebar.subheader("Performance Settings")
+    method_list = ["Sequential", "Batch Processing", "Full Concurrent"]
+    if st.session_state.anthropic_api_key == demo_pw:
+        method_list = method_list[:2]
     concurrency_method = st.sidebar.radio(
         "Processing Method:",
-        ["Sequential", "Batch Processing", "Full Concurrent"],
+        method_list,
         index=1,  # Default to Batch Processing
-        help="Choose how to process multiple files.\nBatch Processing is recommended for all use cases.\nFull Concurrent is marginally faster for larger projects but may cause issues currently.",
+        help="Choose how to process multiple files. Batch Processing is recommended for all use cases. Full Concurrent is marginally faster for larger projects but may cause issues currently. Full Concurrent is unavailable while in demo mode.",
     )
-
-    # API key input
-    api_key = simple_get_api_key()
-    if not api_key:
-        st.info("👆 Please enter a valid API key above to continue")
-        st.stop()
 
     # Initialize the config dictionary
     config = {
@@ -189,22 +216,24 @@ def sidebar_config() -> Dict[str, Any]:
         "generate_overview": generate_overview,
         "generate_dir_structure": generate_dir_structure,
         "concurrency_method": concurrency_method,
+        "force_content_overview": force_content_overview,
     }
 
     # Add method-specific options
+    max_batch_size = MAX_BATCH_SIZE_DEMO_MODE if st.session_state.anthropic_api_key == demo_pw else MAX_BATCH_SIZE
     if concurrency_method == "Batch Processing":
         config["batch_size"] = st.sidebar.slider(
             "Batch Size",
-            min_value=2,
-            max_value=5,
+            min_value=MIN_BATCH_SIZE,
+            max_value=max_batch_size,
             value=3,
-            help="Number of files to process simultaneously in each batch",
+            help="Number of files to process simultaneously in each batch. Max batch size is limited in demo mode.",
         )
     elif concurrency_method == "Full Concurrent":
         config["max_workers"] = st.sidebar.slider(
             "Max Workers",
-            min_value=2,
-            max_value=8,
+            min_value=MIN_FULL_CONCURRENCY_THREADS,
+            max_value=MAX_FULL_CONCURRENCY_THREADS,
             value=3,
             help="Maximum number of concurrent threads (keep low to avoid API issues)",
         )
@@ -254,7 +283,7 @@ def display_file_summary_enhanced(files: Dict[str, Dict[str, Any]]) -> bool:
         # Display by category
         st.write("**Files by Category:**")
         for category, count in sorted(category_counts.items()):
-            st.write(f"📁 {category}: {count} files")
+            st.write(f"{category}: {count} files")
 
         # Show top languages
         st.write("**Top Languages:**")
@@ -278,17 +307,17 @@ def display_file_summary_enhanced(files: Dict[str, Dict[str, Any]]) -> bool:
         num_dirs = len(directories)
         if num_dirs > 0:
             st.write("**Project Structure:**")
-            st.write(f"📂 {num_dirs} directories")
-            st.write(f"📄 {len(files)} files")
+            st.write(f"{num_dirs} directories")
+            st.write(f"{len(files)} files")
 
         # List files found by directory
-        with st.expander("📋 Detailed File List", expanded=False):
+        with st.expander("Detailed File List", expanded=False):
             # Display root files first
             root_files = [
                 path for path, info in files.items() if not info.get("directory")
             ]
             if root_files:
-                st.markdown("**📁 Root Directory:**")
+                st.markdown("**Root Directory:**")
                 for file_path in sorted(root_files):
                     file_name = os.path.basename(file_path)
                     file_info = files[file_path]
@@ -296,7 +325,7 @@ def display_file_summary_enhanced(files: Dict[str, Dict[str, Any]]) -> bool:
 
             # Then display each directory
             for directory in sorted(directories):
-                st.markdown(f"**📁 {directory}/**")
+                st.markdown(f"**{directory}/**")
                 dir_files = [
                     path
                     for path, info in files.items()
@@ -445,7 +474,7 @@ def display_download_options(documentation: Dict[str, str], key_suffix: str = ""
 
     with col1:
         st.download_button(
-            label="📥 Download as Markdown",
+            label="Download as Markdown",
             data=combined_docs,
             file_name="documentation.md",
             mime="text/markdown",
@@ -456,7 +485,7 @@ def display_download_options(documentation: Dict[str, str], key_suffix: str = ""
     with col2:
         json_data = json.dumps(documentation, indent=2)
         st.download_button(
-            label="📥 Download as JSON",
+            label="Download as JSON",
             data=json_data,
             file_name="documentation.json",
             mime="application/json",
@@ -471,7 +500,7 @@ def display_download_options(documentation: Dict[str, str], key_suffix: str = ""
             )
 
             st.download_button(
-                label="📥 Download as HTML",
+                label="Download as HTML",
                 data=html_content,
                 file_name="documentation.html",
                 mime="text/html",
@@ -484,7 +513,7 @@ def display_download_options(documentation: Dict[str, str], key_suffix: str = ""
     # Show save confirmation if this is a new generation
     if key_suffix == "_current":
         st.info(
-            "💾 This documentation has been automatically saved to your session history!"
+            "This documentation has been automatically saved to your session history!"
         )
 
 

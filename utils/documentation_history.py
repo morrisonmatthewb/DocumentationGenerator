@@ -262,6 +262,7 @@ def display_documentation_history_sidebar():
 
     if len(history) > 3:
         st.sidebar.write(f"... and {len(history) - 3} more in main history")
+    st.sidebar.markdown("---")
 
 
 def save_current_documentation(

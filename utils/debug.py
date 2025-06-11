@@ -19,8 +19,3 @@ def show_debug_info():
                 st.write(f"• {key}: {display_value}")
         else:
             st.write("Empty session state")
-        
-        # Button to clear session state
-        if st.button("🗑️ Clear Session State"):
-            st.session_state.clear()
-            st.rerun()

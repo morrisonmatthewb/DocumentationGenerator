@@ -34,7 +34,7 @@ Documentation generator that uses Claude AI to automatically create comprehensiv
 * **Full Concurrent** - Maximum parallelization (for large projects, not recommended)
 * **Smart Memory Management** - Configurable file size limits and efficient processing
 
-## 🎯 Supported Languages & Technologies
+## Supported Languages & Technologies
 
 ### Programming Languages
 
@@ -72,7 +72,7 @@ R • Julia • MATLAB
 
 C/C++ Headers • Python Interface Files
 
-## 📦 Installation
+## Installation
 
 See [SETUP.md](https://claude.ai/chat/SETUP.md) for detailed installation instructions.
 
@@ -93,7 +93,7 @@ echo "ANTHROPIC_API_KEY=your_api_key_here" > .env
 streamlit run app_concurrent.py
 ```
 
-## 🚀 Usage
+## Usage
 
 ### Basic Workflow
 
@@ -131,7 +131,7 @@ streamlit run app_concurrent.py
 * **Comprehensive** - Balanced detail level (recommended)
 * **Expert** - Extremely detailed with advanced insights
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 advanced-documentation-generator/

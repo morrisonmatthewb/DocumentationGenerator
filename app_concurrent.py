@@ -14,31 +14,25 @@ from utils.ui import (
     setup_page,
     sidebar_config,
     file_uploader_section,
-    display_file_summary,
     display_file_summary_enhanced,
     display_documentation,
     display_download_options,
 )
 from core.concurrent_docgen import (
     process_archive,
-    generate_all_documentation_concurrent_fixed,
+    generate_all_documentation_concurrent,
     generate_all_documentation_batch,
 )
-from utils.demo import (
-    check_demo_operation,
-    update_demo_usage,
-    apply_demo_config_restrictions,
-)
-from utils.api import (simple_get_api_key)
 from utils.debug import show_debug_info
-# Load environment variables at the application start
-load_dotenv(dotenv_path=".env", verbose=True)
 
+
+load_dotenv(dotenv_path=".env", verbose=True)
 
 def main():
     """Main application function with history integration."""
     # Setup page
     setup_page()
+    demo_pw = os.getenv("DEMO_PW")
 
     # Display title and description
     st.title("Documentation Generator")
@@ -47,10 +41,9 @@ def main():
     # Add documentation history in sidebar
     display_documentation_history_sidebar()
 
-
     # Get configuration and apply demo restrictions
     config = sidebar_config()
-    # config = apply_demo_config_restrictions(config)
+    st.session_state.force_content_overview = False if st.session_state.anthropic_api_key and st.session_state.anthropic_api_key == demo_pw else config.get("force_content_overview")
 
     # Add main tab layout
     tab1, tab2 = st.tabs(["📝 Generate Documentation", "📚 Documentation History"])
@@ -64,16 +57,11 @@ def main():
         uploaded_file, file_extension, archive_format = file_uploader_section()
 
         if uploaded_file is not None:
-            # file_size = uploaded_file.size
-            # if not check_demo_operation("upload", file_size=file_size):  # NEW: Check limits
-                # return
+
             # Processing indicators
             with st.spinner(f"Processing {archive_format} archive..."):
                 files = process_archive(uploaded_file, file_extension, config)
                 if files:
-                    # Update demo usage
-                    # update_demo_usage('upload')
-
                     st.success(f"Successfully extracted {archive_format} archive")
                 else:
                     return
@@ -89,10 +77,6 @@ def main():
 
             # Generate documentation button
             if st.button("Generate Documentation", key="generate_docs_button"):
-                # Check demo limits before documentation generation
-                # total_size = sum(len(info['content'].encode()) for info in files.values())
-                # if not check_demo_operation('process', file_count=len(files), total_size=total_size):
-                    #return
                 with st.container():
                     st.subheader("Documentation Generation Progress")
 
@@ -108,7 +92,7 @@ def main():
                         st.info(
                             f"Using concurrent processing with {config.get('max_workers', 3)} workers"
                         )
-                        documentation = generate_all_documentation_concurrent_fixed(
+                        documentation = generate_all_documentation_concurrent(
                             files, config, config.get("max_workers", 3)
                         )
                     else:
@@ -118,8 +102,6 @@ def main():
                         documentation = generate_all_documentation(files, config)
 
                     if documentation:
-                        # Update demo usage after successful processing
-                        # update_demo_usage('process', file_count=len(files), total_size=total_size)
                         
                         # Store in session state
                         st.session_state.documentation = documentation

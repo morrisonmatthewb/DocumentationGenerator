@@ -28,6 +28,7 @@ def build_combined_documentation(documentation: Dict[str, Any]) -> str:
     # Add each file's documentation
     for file_path, doc in documentation.items():
         if file_path not in ["__project_overview__", "__directory_structure__", "__mermaid_diagram__"]:
-            combined_docs += f"# Documentation for {file_path}\n\n{doc}\n\n---\n\n"
+            # combined_docs += f"# Documentation for {file_path}\n\n{doc}\n\n---\n\n"
+            combined_docs += f"#{doc}\n\n---\n\n"
     
     return combined_docs

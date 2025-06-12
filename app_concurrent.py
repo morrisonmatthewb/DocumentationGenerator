@@ -110,7 +110,7 @@ def main():
 
                         # Display results
                         display_documentation(documentation)
-                        display_download_options(documentation, "_current")
+                        display_download_options(documentation, "_current", uploaded_file.name)
                     else:
                         st.error("Documentation generation failed.")
                         return
@@ -119,7 +119,7 @@ def main():
         elif "documentation" in st.session_state:
             documentation = st.session_state.documentation
             display_documentation(documentation)
-            display_download_options(documentation, "_cached")
+            display_download_options(documentation, "_cached", uploaded_file.name)
 
     with tab2:
         display_documentation_history()

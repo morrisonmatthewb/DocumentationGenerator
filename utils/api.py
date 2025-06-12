@@ -198,7 +198,7 @@ def generate_documentation(
     {content}
     ```
     
-    Format the documentation in clean, well-structured markdown.
+    Format the documentation in clean, well-structured markdown. Make the title of the documentation 'Documentation for file_name' where file_name is the name of the file.
     """
 
     try:

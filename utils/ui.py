@@ -475,7 +475,7 @@ def display_documentation(documentation: Dict[str, str]):
                 st.markdown(doc)
 
 
-def display_download_options(documentation: Dict[str, str], key_suffix: str = ""):
+def display_download_options(documentation: Dict[str, str], key_suffix: str = "", archive_filename: str = None):
     """Display download options for the documentation."""
     st.subheader("Download Options")
 
@@ -484,11 +484,19 @@ def display_download_options(documentation: Dict[str, str], key_suffix: str = ""
 
     col1, col2, col3 = st.columns(3)
 
+    project_name = "documentation"
+    if archive_filename:
+        # Extract project name from filename
+        project_name = (
+            archive_filename.split(".")[0]
+            if "." in archive_filename
+            else archive_filename
+        )
     with col1:
         st.download_button(
             label="Download as Markdown",
             data=combined_docs,
-            file_name="documentation.md",
+            file_name=f"{project_name}_documentation.md",
             mime="text/markdown",
             key=f"download_markdown{key_suffix}",
             help="Download as Markdown file",
@@ -499,7 +507,7 @@ def display_download_options(documentation: Dict[str, str], key_suffix: str = ""
         st.download_button(
             label="Download as JSON",
             data=json_data,
-            file_name="documentation.json",
+            file_name=f"{project_name}_documentation.json",
             mime="application/json",
             key=f"download_json{key_suffix}",
             help="Download as JSON file for programmatic use",
@@ -514,7 +522,7 @@ def display_download_options(documentation: Dict[str, str], key_suffix: str = ""
             st.download_button(
                 label="Download as HTML",
                 data=html_content,
-                file_name="documentation.html",
+                file_name=f"{project_name}_documentation.html",
                 mime="text/html",
                 key=f"download_html{key_suffix}",
                 help="Download as interactive HTML file",

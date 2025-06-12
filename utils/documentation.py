@@ -39,10 +39,10 @@ def build_combined_documentation(documentation: Dict[str, Any]) -> str:
                 non_root_files.append((file_path, doc))
 
     sorted_non_root_files = sorted(non_root_files)
-    for _, doc in root_files:
-        combined_docs += f"# Documentation for {file_path}\n\n{doc}\n\n---\n\n"
-    for _, doc in sorted_non_root_files:
-        combined_docs += f"# Documentation for {file_path}\n\n{doc}\n\n---\n\n"
+    for fp, doc in root_files:
+        combined_docs += f"# Documentation for {fp}\n\n{doc}\n\n---\n\n"
+    for fp, doc in sorted_non_root_files:
+        combined_docs += f"# Documentation for {fp}\n\n{doc}\n\n---\n\n"
     return combined_docs
 """
     # Add each file's documentation

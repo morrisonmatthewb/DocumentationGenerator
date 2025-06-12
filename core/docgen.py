@@ -7,7 +7,7 @@ import streamlit as st
 
 from utils.api import (
     initialize_client,
-    generate_project_overview,
+    generate_project_overview_simple,
     generate_documentation,
     generate_content_based_overview,
 )

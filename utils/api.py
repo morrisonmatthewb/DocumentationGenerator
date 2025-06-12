@@ -60,7 +60,9 @@ def _check_api_input(user_input) -> Optional[str]:
             st.session_state.anthropic_api_key = demo_pw
             return os.getenv("DEMO_KEY")
         else:
-            st.success("Valid API key entered. Note: Your key is not stored or recorded anywhere else.")
+            st.success(
+                "Valid API key entered. Note: Your key is not stored or recorded anywhere else."
+            )
             return user_input
     else:
         _invalid_api_key_error_message()
@@ -199,6 +201,7 @@ def generate_documentation(
     ```
     
     Format the documentation in clean, well-structured markdown. Make the title of the documentation 'Documentation for file_name' where file_name is the name of the file.
+    Make sure the title is a header 1.
     """
 
     try:
@@ -215,7 +218,7 @@ def generate_documentation(
         return f"Error generating documentation: {str(e)}"
 
 
-def generate_project_overview(
+def generate_project_overview_simple(
     files: Dict[str, Dict[str, Any]], client: anthropic.Anthropic
 ) -> str:
     """
@@ -269,6 +272,8 @@ def generate_project_overview(
     3. Key Components
     4. Directory Structure Analysis
     5. Potential Dependencies and Technologies
+
+    In your title, use 'Hierarchy Based Project Overview" instead of just 'Project Overview'
     """
 
     try:
@@ -364,10 +369,12 @@ def _generate_overview_direct(
     4. **Technical Stack** - Technologies, frameworks, and patterns used
     5. **Component Relationships** - How different parts interact
     6. **Notable Implementation Details** - Interesting technical aspects
-    7. **Potential Improvements** - Areas of the project that may be messy, sub-optimal, or against industry standard software engineering principles. Only add this section if there is an obvious or recurring issue.
+    7. **Potential Improvements** - Areas of the project that may be messy, sub-optimal, or against industry standard software engineering principles. Only add this section if there is an obvious or recurring issue and if you have tokens available.
     
     Format as a well-structured markdown document. Focus on insights that can only 
     be gained from reading the actual code documentation, not just file names.
+
+    In your title, use 'Content Based Project Overview" instead of just 'Project Overview'
     """
 
     try:
@@ -426,9 +433,12 @@ def _generate_overview_with_summaries(
     4. **Technology Stack** - Frameworks, libraries, and patterns
     5. **Data Flow** - How information moves through the system
     6. **Key Design Patterns** - Architectural approaches used
+    7. **Potential Improvements** - Areas of the project that may be messy, sub-optimal, or against industry standard software engineering principles. Only add this section if there is an obvious or recurring issue and if you have tokens available.
     
     Focus on the big picture and relationships between components rather than 
     individual file details.
+
+    In your title, use 'Summary Based Project Overview" instead of just 'Project Overview'
     """
 
     try:
@@ -479,9 +489,12 @@ def _generate_overview_hierarchical(
     4. **Feature Overview** - Main capabilities and functions
     5. **Integration Points** - How different parts connect
     6. **Scalability & Design** - Architectural decisions and patterns
+    7. **Potential Improvements** - Areas of the project that may be messy, sub-optimal, or against industry standard software engineering principles. Only add this section if there is an obvious or recurring issue and if you have tokens available.
     
     This should be a high-level strategic overview suitable for stakeholders 
     who want to understand the project's scope and approach.
+
+    In your title, use 'Hierarchy Based Project Overview" instead of just 'Project Overview'
     """
 
     try:

@@ -106,11 +106,11 @@ def convert_markdown_to_html(markdown_content: str, title: str = "Documentation"
     </html>
     """
     
-    return enhance_html(html_document);
+    return enhance_html(html_document)
 
 def enhance_html(html_content: str, title: str = "Project Documentation") -> str:
     """
-    Enhance the existing HTML with viewer-specific features.
+    Enhance HTML with user experience features such as table of contents.
     
     Args:
         html_content: HTML content from convert_markdown_to_html

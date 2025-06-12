@@ -23,12 +23,13 @@ def build_combined_documentation(documentation: Dict[str, Any]) -> str:
     
     # Then include project overview
     if "__project_overview__" in documentation:
-        combined_docs += f"# Project Overview\n\n{documentation['__project_overview__']}\n\n---\n\n"
+        # combined_docs += f"# Project Overview\n\n{documentation['__project_overview__']}\n\n---\n\n" # Includes section title, redundant
+        combined_docs += f"{documentation['__project_overview__']}\n\n---\n\n"
     
     # Add each file's documentation
     for file_path, doc in documentation.items():
         if file_path not in ["__project_overview__", "__directory_structure__", "__mermaid_diagram__"]:
-            # combined_docs += f"# Documentation for {file_path}\n\n{doc}\n\n---\n\n"
-            combined_docs += f"#{doc}\n\n---\n\n"
+            # combined_docs += f"# Documentation for {file_path}\n\n{doc}\n\n---\n\n" # Includes section title, redundant
+            combined_docs += f"{doc}\n\n---\n\n"
     
     return combined_docs

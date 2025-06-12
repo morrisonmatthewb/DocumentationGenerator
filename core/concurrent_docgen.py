@@ -10,7 +10,7 @@ import queue
 from utils.api import (
     initialize_client,
     generate_documentation,
-    generate_project_overview,
+    generate_project_overview_simple,
     generate_content_based_overview,
 )
 from utils.archive import extract_files_from_archive

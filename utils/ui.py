@@ -492,6 +492,7 @@ def display_download_options(documentation: Dict[str, str], key_suffix: str = ""
             if "." in archive_filename
             else archive_filename
         )
+
     with col1:
         st.download_button(
             label="Download as Markdown",
@@ -516,7 +517,7 @@ def display_download_options(documentation: Dict[str, str], key_suffix: str = ""
     with col3:
         try:
             html_content = convert_markdown_to_html(
-                combined_docs, title="Project Documentation"
+                combined_docs, title=f"{project_name} Documentation"
             )
 
             st.download_button(

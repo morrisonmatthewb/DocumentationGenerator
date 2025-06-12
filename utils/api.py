@@ -56,7 +56,7 @@ def _check_api_input(user_input) -> Optional[str]:
     # Validate input
     if _is_valid_api_key(user_input):
         if user_input.lower() == demo_pw:
-            st.success("Demo mode activated.")
+            st.success("Demo mode activated. Some features will be disabled.")
             st.session_state.anthropic_api_key = demo_pw
             return os.getenv("DEMO_KEY")
         else:
@@ -200,8 +200,7 @@ def generate_documentation(
     {content}
     ```
     
-    Format the documentation in clean, well-structured markdown. Make the title of the documentation 'Documentation for file_name' where file_name is the name of the file.
-    Make sure the title is a header 1.
+    Format the documentation in clean, well-structured markdown. Format the title as 'Documentation for file_path' where file_path is the file path. DO NOT DEVIATE FROM THIS TITLE FORMAT.
     """
 
     try:

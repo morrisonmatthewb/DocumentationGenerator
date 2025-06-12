@@ -23,6 +23,7 @@ from core.concurrent_docgen import (
     generate_all_documentation_concurrent,
     generate_all_documentation_batch,
 )
+from utils.documentation import organize_documentation_by_dir
 from utils.debug import show_debug_info
 
 
@@ -102,24 +103,27 @@ def main():
                         documentation = generate_all_documentation(files, config)
 
                     if documentation:
+                        # Reorder documentation dict so that files with the same parent dir are grouped
+                        documentation = organize_documentation_by_dir(documentation)
                         
                         # Store in session state
                         st.session_state.documentation = documentation
+                        st.session_state.last_file_name = uploaded_file.name
 
                         save_current_documentation(documentation, uploaded_file.name)
 
                         # Display results
-                        display_documentation(documentation)
-                        display_download_options(documentation, "_current", uploaded_file.name)
+                        # display_documentation(documentation)
+                        # display_download_options(documentation, "_current", uploaded_file.name)
                     else:
                         st.error("Documentation generation failed.")
                         return
 
         # If documentation was previously generated, show it from session state
-        elif "documentation" in st.session_state:
+        if "documentation" in st.session_state:
             documentation = st.session_state.documentation
             display_documentation(documentation)
-            display_download_options(documentation, "_cached", uploaded_file.name)
+            display_download_options(documentation, "_cached", st.session_state.last_file_name)
 
     with tab2:
         display_documentation_history()

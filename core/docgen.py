@@ -47,19 +47,20 @@ def generate_all_documentation(files, config):
 
             # Also create a separate entry for the Mermaid diagram
             documentation["__mermaid_diagram__"] = f"""
-    # Project Directory Structure (Interactive)
+    # Project Directory Structure Mermaid Code
     
     ```mermaid
     {mermaid_code}
     ```
     """
 
-    # Process each fileAdd commentMore actions
+    # Process each file
     total_files = len(files)
     for i, (file_path, file_info) in enumerate(files.items()):
-        documentation[file_path] = generate_documentation(
-            file_path, file_info, client, config["doc_level"]
-        )
+        with st.spinner("Generating file documentation sequentially..."):
+            documentation[file_path] = generate_documentation(
+                file_path, file_info, client, config["doc_level"]
+            )
     # Generate project overview if selected
     if config["generate_overview"] and len(files) > 1:
         with st.spinner("Generating project overview..."):

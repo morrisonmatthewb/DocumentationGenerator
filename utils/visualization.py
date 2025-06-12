@@ -97,67 +97,63 @@ def build_directory_tree(files: Dict[str, Dict[str, Any]]) -> Tuple[Dict, str, s
 
         return lines
 
+    def generate_mermaid_diagram(structure):
+        """Generate Mermaid diagram using the hierarchical structure"""
+        mermaid_lines = ["graph TD"]
+        
+        # Map to keep track of node IDs
+        node_map = {}
+        node_counter = 0
+
+        def get_node_id(path):
+            nonlocal node_counter
+            if path not in node_map:
+                node_map[path] = f"node{node_counter}"
+                node_counter += 1
+            return node_map[path]
+
+        def add_mermaid_nodes(structure, current_path=""):
+            """Recursively add nodes and connections to Mermaid diagram"""
+            current = structure[current_path]
+            
+            # Get current node ID
+            if current_path == "":
+                current_id = get_node_id("root")
+                mermaid_lines.append(f"    {current_id}[Project Root]")
+            else:
+                current_id = get_node_id(current_path)
+                dir_name = current_path.split("/")[-1]
+                mermaid_lines.append(f"    {current_id}[{dir_name}/]")
+
+            # Add subdirectories
+            for dir_name in sorted(current["dirs"]):
+                child_path = f"{current_path}/{dir_name}" if current_path else dir_name
+                child_id = get_node_id(child_path)
+                
+                # Add connection from current to child
+                mermaid_lines.append(f"    {current_id} --> {child_id}")
+                
+                # Recursively process child directory
+                add_mermaid_nodes(structure, child_path)
+
+            # Add files
+            for file_name, language in sorted(current["files"]):
+                file_path = f"{current_path}/{file_name}" if current_path else file_name
+                file_id = get_node_id(file_path)
+                mermaid_lines.append(f'    {file_id}["{file_name}"]')
+                mermaid_lines.append(f"    {current_id} --> {file_id}")
+
+        # Generate the diagram
+        add_mermaid_nodes(structure)
+        return "\n".join(mermaid_lines)
+
     # Generate ASCII tree
     structure = build_tree_structure()
     tree_lines = ["# Project Directory Structure", "```", "Project Root/"]
     ascii_lines = generate_ascii_tree(structure)
     tree_lines.extend(ascii_lines)
     tree_lines.append("```")
+    
+    mermaid_diagram = generate_mermaid_diagram(structure)
 
-    # Create Mermaid diagram
-    mermaid_lines = ["graph TD"]
-
-    # Map to keep track of node IDs
-    node_map = {}
-    node_counter = 0
-
-    # Helper function to create node IDs
-    def get_node_id(name):
-        nonlocal node_counter
-        if name not in node_map:
-            node_map[name] = f"node{node_counter}"
-            node_counter += 1
-        return node_map[name]
-
-    # Add root node
-    root_id = get_node_id("Project Root")
-    mermaid_lines.append(f"    {root_id}[Project Root]")
-
-    # Process directories
-    for dir_path in sorted(tree.keys()):
-        if dir_path == "root":
-            dir_id = root_id
-        else:
-            # Handle nested directories
-            path_parts = dir_path.split("/")
-            parent_path = ""
-            parent_id = root_id
-
-            for i, part in enumerate(path_parts):
-                current_path = (
-                    parent_path + part if i == 0 else parent_path + "/" + part
-                )
-                current_id = get_node_id(current_path)
-
-                if i == len(path_parts) - 1:  # Last part
-                    mermaid_lines.append(f"    {current_id}[{part}/]")
-                    mermaid_lines.append(f"    {parent_id} --> {current_id}")
-                else:  # Intermediate directories
-                    if f"    {current_id}[{part}/]" not in mermaid_lines:
-                        mermaid_lines.append(f"    {current_id}[{part}/]")
-                        mermaid_lines.append(f"    {parent_id} --> {current_id}")
-
-                parent_path = current_path + "/"
-                parent_id = current_id
-
-            dir_id = get_node_id(dir_path)
-
-        # Add files for this directory
-        for file_name, language in sorted(tree[dir_path]):
-            file_id = get_node_id(
-                f"{dir_path}/{file_name}" if dir_path != "root" else file_name
-            )
-            mermaid_lines.append(f'    {file_id}["{file_name}"]')
-            mermaid_lines.append(f"    {dir_id} --> {file_id}")
-
-    return tree, "\n".join(tree_lines), "\n".join(mermaid_lines)
+    return tree, "\n".join(tree_lines), mermaid_diagram

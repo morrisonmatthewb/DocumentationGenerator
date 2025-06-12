@@ -95,7 +95,7 @@ def generate_all_documentation_concurrent(files, config, max_workers=3):
 
             # Also create a separate entry for the Mermaid diagram
             documentation["__mermaid_diagram__"] = f"""
-# Project Directory Structure (Interactive)
+# Project Directory Structure Mermaid Code
 
 ```mermaid
 {mermaid_code}
@@ -147,33 +147,34 @@ def generate_all_documentation_concurrent(files, config, max_workers=3):
 
     try:
         # Process files concurrently
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Prepare arguments for each file
-            file_args = [
-                (file_path, file_info, client, config["doc_level"])
-                for file_path, file_info in files.items()
-            ]
+        with st.spinner("Generating file documentation with full concurrency..."):
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # Prepare arguments for each file
+                file_args = [
+                    (file_path, file_info, client, config["doc_level"])
+                    for file_path, file_info in files.items()
+                ]
 
-            # Submit all tasks
-            future_to_file = {
-                executor.submit(generate_file_documentation_worker, args): args[0]
-                for args in file_args
-            }
+                # Submit all tasks
+                future_to_file = {
+                    executor.submit(generate_file_documentation_worker, args): args[0]
+                    for args in file_args
+                }
 
-            # Process results as they complete
-            for future in as_completed(future_to_file):
-                file_path = future_to_file[future]
-                try:
-                    result_file_path, doc, success = future.result()
-                    documentation[result_file_path] = doc
+                # Process results as they complete
+                for future in as_completed(future_to_file):
+                    file_path = future_to_file[future]
+                    try:
+                        result_file_path, doc, success = future.result()
+                        documentation[result_file_path] = doc
 
-                    # Signal progress update through queue
-                    progress_queue.put((result_file_path, success))
+                        # Signal progress update through queue
+                        progress_queue.put((result_file_path, success))
 
-                except Exception as e:
-                    error_msg = f"Error processing {file_path}: {str(e)}"
-                    documentation[file_path] = error_msg
-                    progress_queue.put((file_path, False))
+                    except Exception as e:
+                        error_msg = f"Error processing {file_path}: {str(e)}"
+                        documentation[file_path] = error_msg
+                        progress_queue.put((file_path, False))
 
     except Exception as e:
         st.error(f"Error in concurrent processing: {str(e)}")
@@ -235,7 +236,7 @@ def generate_all_documentation_batch(files, config, batch_size=3):
 
             documentation["__directory_structure__"] = ascii_tree
             documentation["__mermaid_diagram__"] = f"""
-# Project Directory Structure (Interactive)
+# Project Directory Structure Mermaid Code
 
 ```mermaid
 {mermaid_code}
@@ -261,35 +262,35 @@ def generate_all_documentation_batch(files, config, batch_size=3):
 
         # Process current batch concurrently
         batch_results = []
+        with st.spinner("Generating file documentation in batches..."):
+            with ThreadPoolExecutor(max_workers=min(batch_size, len(batch))) as executor:
+                future_to_file = {
+                    executor.submit(
+                        generate_file_documentation_worker,
+                        (file_path, file_info, client, config["doc_level"]),
+                    ): file_path
+                    for file_path, file_info in batch
+                }
 
-        with ThreadPoolExecutor(max_workers=min(batch_size, len(batch))) as executor:
-            future_to_file = {
-                executor.submit(
-                    generate_file_documentation_worker,
-                    (file_path, file_info, client, config["doc_level"]),
-                ): file_path
-                for file_path, file_info in batch
-            }
+                for future in as_completed(future_to_file):
+                    file_path = future_to_file[future]
+                    try:
+                        result_file_path, doc, success, error_msg = future.result()
 
-            for future in as_completed(future_to_file):
-                file_path = future_to_file[future]
-                try:
-                    result_file_path, doc, success, error_msg = future.result()
+                        if success:
+                            documentation[result_file_path] = doc
+                            batch_results.append((result_file_path, True))
+                        else:
+                            documentation[result_file_path] = f"Error: {error_msg}"
+                            batch_results.append((result_file_path, False))
 
-                    if success:
-                        documentation[result_file_path] = doc
-                        batch_results.append((result_file_path, True))
-                    else:
-                        documentation[result_file_path] = f"Error: {error_msg}"
-                        batch_results.append((result_file_path, False))
+                        completed_count += 1
 
-                    completed_count += 1
-
-                except Exception as e:
-                    error_msg = f"Worker exception: {str(e)}"
-                    documentation[file_path] = f"Error: {error_msg}"
-                    batch_results.append((file_path, False))
-                    completed_count += 1
+                    except Exception as e:
+                        error_msg = f"Worker exception: {str(e)}"
+                        documentation[file_path] = f"Error: {error_msg}"
+                        batch_results.append((file_path, False))
+                        completed_count += 1
 
         # Update progress
         batch_elapsed = time.time() - batch_start_time

@@ -216,7 +216,7 @@ def display_documentation_history_sidebar():
     if not history:
         return
 
-    st.sidebar.subheader(f"📚 Recent Docs ({len(history)})")
+    st.sidebar.subheader(f"Recent Docs ({len(history)})")
 
     for entry in history[:3]:  # Show only the 3 most recent
         with st.sidebar.expander(f"{entry['project_name'][:20]}...", expanded=False):

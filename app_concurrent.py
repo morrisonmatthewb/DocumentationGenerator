@@ -123,7 +123,7 @@ def main():
 
     with tab2:
         display_documentation_history()
-    if os.getenv("DEBUG") == "true":
+    if os.getenv("DEBUG"):
         show_debug_info()
 
 
